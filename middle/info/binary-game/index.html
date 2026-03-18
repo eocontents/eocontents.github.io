@@ -1138,7 +1138,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   };
 
   const linesLeft = config.maxRows - rows.length;
-  const isDanger = linesLeft <= 3;
+  const isDanger = linesLeft <= 2;
 
   // Visual danger pulse (no BGM change)
   const [dangerFlash, setDangerFlash] = useState(false);
@@ -1186,7 +1186,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
           {[
             { label: "점수", value: score.toLocaleString(), color: C.navy },
             { label: "Lv", value: level, color: C.mint },
-            { label: "남은줄", value: linesLeft, color: linesLeft <= 3 ? C.red : C.amber },
+            { label: "남은줄", value: linesLeft, color: linesLeft <= 2 ? C.red : C.amber },
           ].map(item => (
             <div key={item.label} style={{
               background: C.scoreboardBg, borderRadius: 10, padding: "5px 8px", textAlign: "center",
@@ -1300,16 +1300,16 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
         borderBottom: hasBinary && config.showGuide ? "none" : `1.5px solid ${isDanger ? C.red : C.frameStroke}`,
         position: "relative",
         transition: "background 0.3s",
-        ...(dangerFlash ? { background: "rgba(224,112,96,0.08)" } : {}),
+        ...(dangerFlash ? { background: "rgba(224,112,96,0.04)" } : {}),
       }}>
         {/* Danger line at bottom */}
         {rows.length > 0 && (
           <div style={{
-            borderBottom: `2px dashed ${linesLeft <= 3 ? "#ff4444" : "#ff8844"}`,
+            borderBottom: `2px dashed ${linesLeft <= 2 ? "#ff4444" : "#ff8844"}`,
             margin: "0 0 2px", padding: "0 0 4px", textAlign: "center",
-            fontSize: 10, color: linesLeft <= 3 ? "#ff4444" : "#ff8844", fontWeight: 600,
+            fontSize: 10, color: linesLeft <= 2 ? "#ff4444" : "#ff8844", fontWeight: 600,
           }}>
-            {linesLeft <= 3 ? "⚠ DANGER" : `↑ ${linesLeft} lines left`}
+            {linesLeft <= 2 ? "⚠ DANGER" : `↑ ${linesLeft} lines left`}
           </div>
         )}
 
@@ -1625,8 +1625,7 @@ function App() {
 
       {screen === "landing" && (
         <LandingScreen onStart={() => {
-          if (save.character) setScreen("stageMap");
-          else setScreen("characterSelect");
+          setScreen("characterSelect");
         }} />
       )}
 
