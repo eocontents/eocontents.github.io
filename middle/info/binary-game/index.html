@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>이오프렌즈 진법 변환 게임</title>
+  <meta name="description" content="2진수, 8진수, 10진수, 16진수 변환을 게임으로 연습하자!">
+  <meta property="og:title" content="이오프렌즈 진법 변환 게임">
+  <meta property="og:description" content="2진수, 8진수, 10진수, 16진수 변환을 게임으로 연습하자!">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes slideIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+    button { font-family: inherit; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    #root { min-height: 100vh; }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+const CHARACTERS = [
+  { id: "eobot", name: "이오봇", color: "#87CEEB", accent: "#3C4F5E", desc: "친절한 가이드" },
+  { id: "juni", name: "주니", color: "#2C3E6B", accent: "#F5DEB3", desc: "열정 응원단장" },
+  { id: "high", name: "하이", color: "#F5A0B8", accent: "#2C3E6B", desc: "호기심 도전가" },
+  { id: "mungeo", name: "멍이오", color: "#E8B864", accent: "#A08040", desc: "다정한 힌트왕" },
+  { id: "nyangeo", name: "냥이오", color: "#8A8E94", accent: "#4A4A4A", desc: "냉철한 분석가" },
+];
+
+const STAGES = [
+  { id: 1, name: "10진 ↔ 2진", fromBase: 10, toBase: 2, icon: "🔢", unlockReq: null },
+  { id: 2, name: "10진 ↔ 8진", fromBase: 10, toBase: 8, icon: "🎱", unlockReq: { stage: 1, level: 3 } },
+  { id: 3, name: "10진 ↔ 16진", fromBase: 10, toBase: 16, icon: "💎", unlockReq: { stage: 2, level: 3 } },
+  { id: 4, name: "2진 ↔ 8진", fromBase: 2, toBase: 8, icon: "🔗", unlockReq: { stage: 3, level: 3 } },
+  { id: 5, name: "2진 ↔ 16진", fromBase: 2, toBase: 16, icon: "⚡", unlockReq: { stage: 4, level: 3 } },
+  { id: 6, name: "8진 ↔ 16진", fromBase: 8, toBase: 16, icon: "🌟", unlockReq: { stage: 5, level: 3 } },
+];
+
+const TOTAL_QUESTIONS = 15;
+
+const LEVEL_CONFIGS = {
+  1: [
+    { bits: 4, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "4비트 (0~15)" },
+    { bits: 6, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "6비트 (0~63)" },
+    { bits: 8, max: 255, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 90, label: "8비트 (0~255)" },
+    { bits: 8, max: 255, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "8비트 힌트없음" },
+    { bits: 8, max: 255, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "8비트 고속" },
+  ],
+  2: [
+    { digits: 1, max: 7, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리 (0~7)" },
+    { digits: 2, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "2자리 (0~63)" },
+    { digits: 3, max: 511, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 90, label: "3자리 (0~511)" },
+    { digits: 3, max: 511, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "3자리 힌트없음" },
+    { digits: 4, max: 4095, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "4자리 (0~4095)" },
+  ],
+  3: [
+    { digits: 1, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리 (0~F)" },
+    { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "2자리 (0~FF)" },
+    { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 90, label: "3자리 (0~FFF)" },
+    { digits: 3, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "3자리 힌트없음" },
+    { digits: 4, max: 65535, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "4자리 (0~FFFF)" },
+  ],
+  4: [
+    { bits: 3, max: 7, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "3비트 (0~7)" },
+    { bits: 6, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "6비트 (0~63)" },
+    { bits: 9, max: 511, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 90, label: "9비트 (0~511)" },
+    { bits: 12, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "12비트 (0~4095)" },
+    { bits: 12, max: 4095, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "12비트 고속" },
+  ],
+  5: [
+    { bits: 4, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "4비트 (0~F)" },
+    { bits: 8, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "8비트 (0~FF)" },
+    { bits: 12, max: 4095, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 90, label: "12비트 (0~FFF)" },
+    { bits: 16, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "16비트 (0~FFFF)" },
+    { bits: 16, max: 65535, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "16비트 고속" },
+  ],
+  6: [
+    { digits: 1, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리" },
+    { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "2자리" },
+    { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 90, label: "3자리" },
+    { digits: 4, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "4자리" },
+    { digits: 4, max: 65535, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "4자리 고속" },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SOUND ENGINE (Web Audio API)
+// ═══════════════════════════════════════════════════════════════
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+  }
+  init() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ctx.state === "suspended") this.ctx.resume();
+  }
+  play(type) {
+    if (!this.enabled || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.connect(g);
+      g.connect(this.ctx.destination);
+      switch (type) {
+        case "toggle":
+          o.frequency.value = 800;
+          o.type = "sine";
+          g.gain.setValueAtTime(0.15, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          o.start(t); o.stop(t + 0.08);
+          break;
+        case "keypress":
+          o.frequency.value = 600;
+          o.type = "sine";
+          g.gain.setValueAtTime(0.12, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+          o.start(t); o.stop(t + 0.06);
+          break;
+        case "correct":
+          o.frequency.setValueAtTime(523, t);
+          o.frequency.setValueAtTime(659, t + 0.1);
+          o.frequency.setValueAtTime(784, t + 0.2);
+          o.type = "sine";
+          g.gain.setValueAtTime(0.2, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+          o.start(t); o.stop(t + 0.4);
+          break;
+        case "wrong":
+          o.frequency.setValueAtTime(300, t);
+          o.frequency.setValueAtTime(200, t + 0.15);
+          o.type = "square";
+          g.gain.setValueAtTime(0.15, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          o.start(t); o.stop(t + 0.35);
+          break;
+        case "combo":
+          [523, 659, 784, 1047].forEach((f, i) => {
+            const o2 = this.ctx.createOscillator();
+            const g2 = this.ctx.createGain();
+            o2.connect(g2); g2.connect(this.ctx.destination);
+            o2.frequency.value = f; o2.type = "sine";
+            g2.gain.setValueAtTime(0.15, t + i * 0.08);
+            g2.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.2);
+            o2.start(t + i * 0.08); o2.stop(t + i * 0.08 + 0.2);
+          });
+          o.stop(t); break;
+        case "levelclear":
+          [523, 659, 784, 1047, 1319].forEach((f, i) => {
+            const o2 = this.ctx.createOscillator();
+            const g2 = this.ctx.createGain();
+            o2.connect(g2); g2.connect(this.ctx.destination);
+            o2.frequency.value = f; o2.type = "sine";
+            g2.gain.setValueAtTime(0.2, t + i * 0.12);
+            g2.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.5);
+            o2.start(t + i * 0.12); o2.stop(t + i * 0.12 + 0.5);
+          });
+          o.stop(t); break;
+        case "gameover":
+          o.frequency.setValueAtTime(400, t);
+          o.frequency.linearRampToValueAtTime(150, t + 0.8);
+          o.type = "sawtooth";
+          g.gain.setValueAtTime(0.12, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 1);
+          o.start(t); o.stop(t + 1);
+          break;
+        case "newrow":
+          o.frequency.value = 440;
+          o.type = "sine";
+          g.gain.setValueAtTime(0.05, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          o.start(t); o.stop(t + 0.15);
+          break;
+        case "click":
+          o.frequency.value = 700;
+          o.type = "sine";
+          g.gain.setValueAtTime(0.1, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+          o.start(t); o.stop(t + 0.05);
+          break;
+        default:
+          o.stop(t);
+      }
+    } catch (e) {}
+  }
+}
+const soundEngine = new SoundEngine();
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+const DIGITS = "0123456789ABCDEF";
+function toBase(decimal, base) {
+  if (decimal === 0) return "0";
+  let r = "", n = decimal;
+  while (n > 0) { r = DIGITS[n % base] + r; n = Math.floor(n / base); }
+  return r;
+}
+function fromBase(str, base) {
+  let r = 0;
+  for (let i = 0; i < str.length; i++) r = r * base + DIGITS.indexOf(str[i].toUpperCase());
+  return r;
+}
+function padBinary(bin, bits) { return bin.padStart(bits, "0"); }
+
+function getInitialSave() {
+  try {
+    const d = JSON.parse(localStorage.getItem("binaryGame"));
+    if (d && d.version === "1.0") return d;
+  } catch {}
+  return {
+    version: "1.0",
+    character: null,
+    sfx: true,
+    bgm: true,
+    stages: Object.fromEntries(STAGES.map(s => [s.id, {
+      levels: Object.fromEntries([1,2,3,4,5].map(l => [l, { cleared: false, stars: 0, high: 0 }])),
+      tutorialSeen: false,
+    }])),
+  };
+}
+
+function saveToDisk(data) {
+  try { localStorage.setItem("binaryGame", JSON.stringify(data)); } catch {}
+}
+
+function isStageUnlocked(save, stageId) {
+  const stage = STAGES.find(s => s.id === stageId);
+  if (!stage || !stage.unlockReq) return true;
+  const req = stage.unlockReq;
+  return save.stages[req.stage]?.levels[req.level]?.cleared || false;
+}
+
+function getStars(accuracy) {
+  if (accuracy >= 90) return 3;
+  if (accuracy >= 80) return 2;
+  if (accuracy >= 70) return 1;
+  return 0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STYLES (prototype-matched palette)
+// ═══════════════════════════════════════════════════════════════
+const C = {
+  bg: "#E3EDF7", bgAlt: "#E3EDF7", navy: "#2D3748", pink: "#F5A0B8",
+  mint: "#7ECEC0", amber: "#E8B864", red: "#E07060", charcoal: "#2D3748",
+  gray: "#6B7B8D", bit0: "#D4E5F0", bit1: "#5B8FB9", bit0t: "#8BA8C0",
+  white: "#FFFFFF", lightBorder: "#C5D8E8",
+  frameBg: "#F5F9FC", frameStroke: "#C5D8E8",
+  btn: "#7BAFD4", btnHover: "#8FC2E0", btnPressed: "#6A9DC2",
+  scoreboardBg: "#E8EFF5", scoreboardStroke: "#B8C8D8",
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SKIN ASSET PATHS
+// ═══════════════════════════════════════════════════════════════
+const SKIN = {
+  bgLanding: "./assets/skins/bg_landing.png",
+  bgStageMap: "./assets/skins/bg_stagemap.png",
+  bgGameplay: "./assets/skins/bg_gameplay.png",
+  bgResult: "./assets/skins/bg_result.png",
+  frameGame: "./assets/skins/frame_game.9.png",
+  frameScoreboard: "./assets/skins/frame_scoreboard.9.png",
+  frameDialog: "./assets/skins/frame_dialog.9.png",
+  btnPrimary: "./assets/skins/btn_primary.png",
+  btnPrimaryHover: "./assets/skins/btn_primary_hover.png",
+  btnPrimaryPressed: "./assets/skins/btn_primary_pressed.png",
+  btnSecondary: "./assets/skins/btn_secondary.png",
+  btnPause: "./assets/skins/btn_icon_pause.png",
+  btnSound: "./assets/skins/btn_icon_sound.png",
+  cellBit0: "./assets/skins/cell_bit_0.png",
+  cellBit1: "./assets/skins/cell_bit_1.png",
+  cellKeypad: "./assets/skins/cell_keypad.png",
+  cellKeypadPressed: "./assets/skins/cell_keypad_pressed.png",
+  stageUnlocked: "./assets/skins/stage_card_unlocked.png",
+  stageLocked: "./assets/skins/stage_card_locked.png",
+  starFilled: "./assets/skins/badge_star_filled.png",
+  starEmpty: "./assets/skins/badge_star_empty.png",
+  lock: "./assets/skins/badge_lock.png",
+  lineGameover: "./assets/skins/line_gameover.png",
+};
+
+function skinBg(url, fallbackColor) {
+  return {
+    backgroundImage: `url(${url})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundColor: fallbackColor,
+  };
+}
+function skinContain(url, fallbackColor) {
+  return {
+    backgroundImage: `url(${url})`,
+    backgroundSize: "contain",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundColor: fallbackColor,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHARACTER AVATAR COMPONENT (image with emoji fallback)
+// ═══════════════════════════════════════════════════════════════
+const CHAR_IMG_BASE = "./assets/characters/";
+const MOOD_EMOJI = { idle: "😊", happy: "😄", sad: "😢", surprise: "😲", think: "🤔", cheer: "🎉", panic: "😰", guide: "☝️", landing: "👋" };
+
+function CharAvatar({ charId, mood = "idle", size = 80 }) {
+  const ch = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+  const [imgError, setImgError] = useState(false);
+  const src = `${CHAR_IMG_BASE}${ch.id}_${mood}.png`;
+
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      background: imgError ? ch.color : "transparent",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: size * 0.45, border: imgError ? `3px solid ${ch.accent}` : "none",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)", flexShrink: 0, overflow: "hidden",
+    }}>
+      {imgError ? (
+        MOOD_EMOJI[mood] || "😊"
+      ) : (
+        <img
+          src={src}
+          alt={`${ch.name} ${mood}`}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          onError={() => setImgError(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LANDING SCREEN
+// ═══════════════════════════════════════════════════════════════
+function LandingScreen({ onStart }) {
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg),
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      padding: "20px", textAlign: "center",
+    }}>
+      <div style={{ fontSize: "clamp(14px, 3vw, 18px)", color: C.navy, fontWeight: 600, marginBottom: 8, letterSpacing: 2 }}>
+        이오프렌즈
+      </div>
+      <h1 style={{
+        fontSize: "clamp(28px, 7vw, 48px)", fontWeight: 800, color: C.navy,
+        margin: "0 0 8px", lineHeight: 1.2,
+      }}>
+        진법 변환 게임
+      </h1>
+      <p style={{ color: C.gray, fontSize: "clamp(13px, 2.5vw, 16px)", margin: "0 0 32px" }}>
+        2진수 · 8진수 · 10진수 · 16진수 변환을 게임으로 연습하자!
+      </p>
+      <div style={{
+        display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap", justifyContent: "center",
+      }}>
+        {CHARACTERS.map(ch => (
+          <div key={ch.id} style={{
+            width: 56, height: 56, borderRadius: "50%", background: ch.color,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, border: `2px solid ${ch.accent}`,
+            animation: `float 3s ease-in-out infinite ${Math.random() * 2}s`,
+          }}>
+            😊
+          </div>
+        ))}
+      </div>
+      <div style={{
+        background: C.white, borderRadius: 16, padding: "24px 32px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)", marginBottom: 24,
+        border: `1px solid ${C.lightBorder}`,
+      }}>
+        <div style={{
+          width: 160, height: 160, background: "#f5f5f5", borderRadius: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 12px", fontSize: 14, color: C.gray, border: "1px dashed #ccc",
+        }}>
+          QR 코드 영역
+        </div>
+        <div style={{ fontSize: 14, color: C.gray, fontFamily: "monospace" }}>
+          edu.link/binary
+        </div>
+      </div>
+      <button onClick={() => { soundEngine.init(); soundEngine.play("click"); onStart(); }} style={{
+        ...skinContain(SKIN.btnPrimary, C.btn), color: C.white, border: "none", borderRadius: 16,
+        padding: "16px 48px", fontSize: "clamp(16px, 3vw, 20px)", fontWeight: 700,
+        cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s",
+        boxShadow: "0 4px 16px rgba(44,62,107,0.2)",
+      }}
+      onMouseEnter={e => { e.target.style.transform = "scale(1.05)"; }}
+      onMouseLeave={e => { e.target.style.transform = "scale(1)"; }}
+      >
+        게임 시작
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHARACTER SELECT
+// ═══════════════════════════════════════════════════════════════
+function CharacterSelect({ onSelect, selected }) {
+  const [hover, setHover] = useState(selected || "eobot");
+  const ch = CHARACTERS.find(c => c.id === hover);
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <h2 style={{ fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 700, color: C.navy, margin: "0 0 8px" }}>
+        함께할 친구를 골라주세요!
+      </h2>
+      <p style={{ color: C.gray, margin: "0 0 24px", fontSize: 14 }}>선택한 캐릭터가 게임을 함께합니다</p>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", marginBottom: 24 }}>
+        {CHARACTERS.map(c => (
+          <button key={c.id} onClick={() => { setHover(c.id); soundEngine.play("click"); }} style={{
+            width: 80, height: 100, borderRadius: 16, border: hover === c.id ? `2px solid ${C.btn}` : `1.5px solid ${C.lightBorder}`,
+            background: hover === c.id ? C.white : "#f8fafc", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            gap: 6, transition: "all 0.2s", transform: hover === c.id ? "scale(1.08)" : "scale(1)",
+            boxShadow: hover === c.id ? "0 4px 16px rgba(0,0,0,0.12)" : "none",
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%", background: c.color,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, border: `2px solid ${c.accent}`,
+            }}>😊</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.charcoal }}>{c.name}</div>
+          </button>
+        ))}
+      </div>
+      <div style={{
+        background: C.white, borderRadius: 16, padding: 20, textAlign: "center",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 24, maxWidth: 320, width: "100%",
+        border: `1px solid ${C.lightBorder}`,
+      }}>
+        <CharAvatar charId={hover} size={64} />
+        <div style={{ fontWeight: 700, fontSize: 18, color: C.charcoal, marginTop: 8 }}>{ch.name}</div>
+        <div style={{ fontSize: 13, color: C.gray }}>{ch.desc}</div>
+      </div>
+      <button onClick={() => { soundEngine.play("click"); onSelect(hover); }} style={{
+        background: C.btn, color: C.white, border: "none", borderRadius: 14,
+        padding: "14px 40px", fontSize: 17, fontWeight: 700, cursor: "pointer",
+        boxShadow: "0 4px 16px rgba(44,62,107,0.3)", transition: "transform 0.15s",
+      }}
+      onMouseEnter={e => e.target.style.transform = "scale(1.05)"}
+      onMouseLeave={e => e.target.style.transform = "scale(1)"}
+      >
+        선택 완료!
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STAGE MAP
+// ═══════════════════════════════════════════════════════════════
+function StageMap({ save, charId, onStageSelect, onHome }) {
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg), padding: "20px 16px",
+      display: "flex", flexDirection: "column", alignItems: "center",
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        width: "100%", maxWidth: 600, marginBottom: 20,
+      }}>
+        <button onClick={() => { soundEngine.play("click"); onHome(); }} style={{
+          background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 10,
+          padding: "8px 14px", fontSize: 13, color: C.gray, cursor: "pointer",
+        }}>
+          ← 홈
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <CharAvatar charId={charId} size={36} />
+          <span style={{ fontWeight: 600, color: C.navy, fontSize: 14 }}>스테이지 선택</span>
+        </div>
+        <div style={{ width: 60 }}></div>
+      </div>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+        gap: 14, maxWidth: 600, width: "100%",
+      }}>
+        {STAGES.map(stage => {
+          const unlocked = isStageUnlocked(save, stage.id);
+          const stageData = save.stages[stage.id];
+          const clearedLevels = Object.values(stageData.levels).filter(l => l.cleared).length;
+          const maxStars = Math.max(...Object.values(stageData.levels).map(l => l.stars), 0);
+          return (
+            <button key={stage.id} onClick={() => {
+              if (unlocked) { soundEngine.play("click"); onStageSelect(stage.id); }
+            }} style={{
+              ...skinContain(unlocked ? SKIN.stageUnlocked : SKIN.stageLocked, unlocked ? C.white : "#e8ecf0"),
+              border: `1.5px solid ${unlocked ? C.frameStroke : "#d0d8e0"}`,
+              borderRadius: 14, padding: "18px 14px", cursor: unlocked ? "pointer" : "not-allowed",
+              opacity: unlocked ? 1 : 0.6, textAlign: "center",
+              transition: "transform 0.15s, box-shadow 0.15s",
+              boxShadow: unlocked ? "0 2px 10px rgba(0,0,0,0.05)" : "none",
+            }}
+            onMouseEnter={e => unlocked && (e.currentTarget.style.transform = "scale(1.03)")}
+            onMouseLeave={e => unlocked && (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <div style={{ fontSize: 28, marginBottom: 6 }}>{unlocked ? stage.icon : "🔒"}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: unlocked ? C.navy : "#999", marginBottom: 4 }}>
+                STAGE {stage.id}
+              </div>
+              <div style={{ fontSize: 12, color: unlocked ? C.charcoal : "#999", marginBottom: 8 }}>{stage.name}</div>
+              {unlocked && (
+                <div style={{ fontSize: 11, color: C.gray }}>
+                  {clearedLevels > 0 ? (
+                    <>Lv.{clearedLevels} {"★".repeat(maxStars)}{"☆".repeat(3 - maxStars)}</>
+                  ) : "미도전"}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEVEL SELECT
+// ═══════════════════════════════════════════════════════════════
+function LevelSelect({ stageId, save, charId, onLevelSelect, onBack }) {
+  const stage = STAGES.find(s => s.id === stageId);
+  const configs = LEVEL_CONFIGS[stageId];
+  const stageData = save.stages[stageId];
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), padding: "20px 16px",
+      display: "flex", flexDirection: "column", alignItems: "center",
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12, marginBottom: 20,
+      }}>
+        <button onClick={() => { soundEngine.play("click"); onBack(); }} style={{
+          background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 10,
+          padding: "8px 14px", fontSize: 13, color: C.gray, cursor: "pointer",
+        }}>
+          ← 스테이지
+        </button>
+        <div style={{ fontWeight: 700, fontSize: 18, color: C.navy }}>
+          {stage.icon} STAGE {stageId} — {stage.name}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400, width: "100%" }}>
+        {configs.map((cfg, i) => {
+          const lv = i + 1;
+          const lvData = stageData.levels[lv];
+          const unlocked = lv === 1 || stageData.levels[lv - 1]?.cleared;
+          return (
+            <button key={lv} onClick={() => {
+              if (unlocked) { soundEngine.play("click"); onLevelSelect(lv); }
+            }} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: unlocked ? C.white : "#f0f0f0", border: `1.5px solid ${unlocked ? C.btn : "#ddd"}`,
+              borderRadius: 14, padding: "14px 18px", cursor: unlocked ? "pointer" : "not-allowed",
+              opacity: unlocked ? 1 : 0.5, transition: "transform 0.15s",
+            }}
+            onMouseEnter={e => unlocked && (e.currentTarget.style.transform = "scale(1.02)")}
+            onMouseLeave={e => unlocked && (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: "50%", background: unlocked ? C.btn : "#ccc",
+                  color: C.white, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontWeight: 700, fontSize: 16,
+                }}>
+                  {unlocked ? lv : "🔒"}
+                </div>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: C.charcoal }}>레벨 {lv}</div>
+                  <div style={{ fontSize: 11, color: C.gray }}>{cfg.label} · {TOTAL_QUESTIONS}문제 · {Math.floor(cfg.timeLimit/60)}분{cfg.timeLimit%60 ? `${cfg.timeLimit%60}초` : ""}</div>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                {lvData.cleared ? (
+                  <>
+                    <div style={{ fontSize: 14 }}>{"★".repeat(lvData.stars)}{"☆".repeat(3 - lvData.stars)}</div>
+                    <div style={{ fontSize: 11, color: C.gray }}>{lvData.high.toLocaleString()}점</div>
+                  </>
+                ) : unlocked ? (
+                  <div style={{ fontSize: 12, color: C.navy, fontWeight: 600 }}>도전 →</div>
+                ) : null}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TUTORIALS
+// ═══════════════════════════════════════════════════════════════
+const TUTORIALS = {
+  1: {
+    title: "10진수 ↔ 2진수",
+    slides: [
+      {
+        title: "2진수란?",
+        content: "컴퓨터는 0과 1만 사용해요.\n각 자리는 오른쪽부터 1, 2, 4, 8, 16, 32, 64, 128의 값을 가집니다.",
+        example: { bits: "00001101", values: [128,64,32,16,8,4,2,1], result: "8+4+1 = 13" },
+      },
+      {
+        title: "10진수 → 2진수",
+        content: "만들고 싶은 숫자가 되도록\n해당 자릿값의 비트를 1로 켜세요!",
+        example: { question: "13을 2진수로?", answer: "8+4+1=13 → 00001101", tip: "큰 자릿값부터 뺄 수 있는지 확인!" },
+      },
+      {
+        title: "2진수 → 10진수",
+        content: "1이 켜진 자릿값을 모두 더하면\n10진수가 됩니다!",
+        example: { question: "1010 → 10진수?", answer: "8+2 = 10", tip: "1이 있는 위치의 자릿값만 더하세요!" },
+      },
+    ],
+  },
+  2: {
+    title: "10진수 ↔ 8진수",
+    slides: [
+      {
+        title: "8진수란?",
+        content: "0~7까지 8개의 숫자만 사용해요.\n각 자리는 오른쪽부터 1, 8, 64, 512...의 값을 가집니다.",
+        example: null,
+      },
+      {
+        title: "변환 방법",
+        content: "10진수를 8로 나누어 나머지를 역순으로!\n예: 25 ÷ 8 = 3 나머지 1 → 31₍₈₎",
+        example: { question: "25 → 8진수?", answer: "25 = 3×8 + 1 → 31", tip: "나머지를 아래서 위로 읽으세요!" },
+      },
+    ],
+  },
+  3: {
+    title: "10진수 ↔ 16진수",
+    slides: [
+      {
+        title: "16진수란?",
+        content: "0~9와 A~F, 총 16개 기호를 사용해요.\nA=10, B=11, C=12, D=13, E=14, F=15",
+        example: null,
+      },
+      {
+        title: "변환 방법",
+        content: "10진수를 16으로 나누어 나머지를 역순으로!\n예: 255 ÷ 16 = 15 나머지 15 → FF₍₁₆₎",
+        example: { question: "255 → 16진수?", answer: "255 = 15×16 + 15 → FF", tip: "10 이상은 A~F로!" },
+      },
+    ],
+  },
+  4: {
+    title: "2진수 ↔ 8진수",
+    slides: [
+      {
+        title: "3비트 그룹핑!",
+        content: "2진수를 오른쪽부터 3자리씩 묶으면\n각 묶음이 8진수 한 자리가 됩니다!",
+        example: { question: "101 110 → 8진수?", answer: "101=5, 110=6 → 56₍₈₎", tip: "오른쪽부터 3개씩!" },
+      },
+    ],
+  },
+  5: {
+    title: "2진수 ↔ 16진수",
+    slides: [
+      {
+        title: "4비트 그룹핑!",
+        content: "2진수를 오른쪽부터 4자리씩 묶으면\n각 묶음이 16진수 한 자리가 됩니다!",
+        example: { question: "1010 1111 → 16진수?", answer: "1010=A, 1111=F → AF₍₁₆₎", tip: "오른쪽부터 4개씩!" },
+      },
+    ],
+  },
+  6: {
+    title: "8진수 ↔ 16진수",
+    slides: [
+      {
+        title: "중간 변환을 활용!",
+        content: "8진수 → 10진수(또는 2진수) → 16진수\n순서로 변환하면 쉬워요!",
+        example: { question: "77₍₈₎ → 16진수?", answer: "77₍₈₎ = 63₍₁₀₎ = 3F₍₁₆₎", tip: "2진수 경유가 더 빠를 수 있어요!" },
+      },
+    ],
+  },
+};
+
+function TutorialScreen({ stageId, charId, onComplete }) {
+  const tutorial = TUTORIALS[stageId];
+  const [page, setPage] = useState(0);
+  const slide = tutorial.slides[page];
+  const isLast = page === tutorial.slides.length - 1;
+
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <CharAvatar charId={charId} mood="guide" size={72} />
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: "12px 0 4px" }}>
+        {tutorial.title}
+      </h2>
+      <div style={{
+        background: C.white, borderRadius: 16, padding: "24px 20px", maxWidth: 420, width: "100%",
+        boxShadow: "0 2px 16px rgba(0,0,0,0.06)", marginBottom: 16,
+        border: `1px solid ${C.lightBorder}`,
+      }}>
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, margin: "0 0 10px" }}>{slide.title}</h3>
+        <p style={{ fontSize: 14, color: C.charcoal, lineHeight: 1.7, whiteSpace: "pre-line", margin: "0 0 14px" }}>
+          {slide.content}
+        </p>
+        {slide.example && (
+          <div style={{
+            background: "#f0f7ff", borderRadius: 10, padding: 14,
+            border: `1px solid ${C.lightBorder}`,
+          }}>
+            {slide.example.bits && (
+              <div style={{ display: "flex", justifyContent: "center", gap: 3, marginBottom: 8 }}>
+                {slide.example.bits.split("").map((b, i) => (
+                  <div key={i} style={{
+                    width: 36, height: 36, borderRadius: 6,
+                    background: b === "1" ? C.bit1 : C.bit0, color: b === "1" ? C.white : C.bit0t,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, fontWeight: 700, fontFamily: "'Fira Code', monospace",
+                  }}>{b}</div>
+                ))}
+              </div>
+            )}
+            {slide.example.values && (
+              <div style={{ display: "flex", justifyContent: "center", gap: 3, marginBottom: 8 }}>
+                {slide.example.values.map((v, i) => (
+                  <div key={i} style={{ width: 36, textAlign: "center", fontSize: 10, color: C.gray, fontFamily: "monospace" }}>{v}</div>
+                ))}
+              </div>
+            )}
+            {slide.example.result && (
+              <div style={{ textAlign: "center", fontWeight: 700, color: C.navy, fontSize: 15, fontFamily: "'Fira Code', monospace" }}>
+                {slide.example.result}
+              </div>
+            )}
+            {slide.example.question && (
+              <div style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: 13, color: C.gray, marginBottom: 4 }}>문제: {slide.example.question}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.navy, fontFamily: "'Fira Code', monospace" }}>
+                  {slide.example.answer}
+                </div>
+              </div>
+            )}
+            {slide.example.tip && (
+              <div style={{
+                marginTop: 8, padding: "6px 10px", background: "#fff8e8", borderRadius: 6,
+                fontSize: 12, color: C.amber, fontWeight: 600,
+              }}>
+                💡 {slide.example.tip}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {/* Page indicator */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {tutorial.slides.map((_, i) => (
+          <div key={i} style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: i === page ? C.navy : C.lightBorder,
+            transition: "background 0.2s",
+          }} />
+        ))}
+      </div>
+      {/* Navigation */}
+      <div style={{ display: "flex", gap: 10 }}>
+        {page > 0 && (
+          <button onClick={() => { soundEngine.play("click"); setPage(p => p - 1); }} style={{
+            background: C.white, color: C.btn, border: `1.5px solid ${C.btn}`, borderRadius: 12,
+            padding: "10px 24px", fontSize: 15, fontWeight: 600, cursor: "pointer",
+          }}>◀ 이전</button>
+        )}
+        {isLast ? (
+          <button onClick={() => { soundEngine.play("click"); onComplete(); }} style={{
+            background: C.btn, color: C.white, border: "none", borderRadius: 12,
+            padding: "10px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 4px 16px rgba(44,62,107,0.3)",
+          }}>시작하기!</button>
+        ) : (
+          <button onClick={() => { soundEngine.play("click"); setPage(p => p + 1); }} style={{
+            background: C.btn, color: C.white, border: "none", borderRadius: 12,
+            padding: "10px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer",
+          }}>다음 ▶</button>
+        )}
+      </div>
+      <button onClick={() => { soundEngine.play("click"); onComplete(); }} style={{
+        background: "none", border: "none", color: C.gray, fontSize: 12,
+        cursor: "pointer", marginTop: 12, textDecoration: "underline",
+      }}>건너뛰기</button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BIT TOGGLE INPUT (auto-submit when correct)
+// ═══════════════════════════════════════════════════════════════
+function BitToggleRow({ bits, targetDecimal, onCorrect, onWrong }) {
+  const [userBits, setUserBits] = useState(new Array(bits).fill(0));
+  const submittedRef = useRef(false);
+
+  const toggle = (idx) => {
+    if (submittedRef.current) return;
+    const nb = [...userBits];
+    nb[idx] = nb[idx] ? 0 : 1;
+    setUserBits(nb);
+    soundEngine.play("toggle");
+    const dec = nb.reduce((s, b, i) => s + b * Math.pow(2, bits - 1 - i), 0);
+    if (dec === targetDecimal) {
+      submittedRef.current = true;
+      setTimeout(() => onCorrect(), 150);
+    }
+  };
+
+  useEffect(() => {
+    setUserBits(new Array(bits).fill(0));
+    submittedRef.current = false;
+  }, [bits, targetDecimal]);
+
+  const cellSz = bits <= 8 ? "clamp(32px, 9vw, 44px)" : "clamp(24px, 6vw, 34px)";
+
+  return (
+    <div style={{ display: "flex", gap: 2 }}>
+      {userBits.map((b, i) => (
+        <button key={i} onClick={() => toggle(i)} style={{
+          width: cellSz, height: cellSz,
+          borderRadius: 6, border: `1.5px solid ${b ? "#4A7EA6" : C.lightBorder}`,
+          background: b ? C.bit1 : C.bit0,
+          color: b ? C.white : C.bit0t,
+          fontSize: bits <= 8 ? "clamp(14px, 3.5vw, 20px)" : "clamp(11px, 2.5vw, 15px)",
+          fontWeight: 700, cursor: "pointer", fontFamily: "'Fira Code', monospace",
+          transition: "all 0.12s", padding: 0,
+        }}>
+          {b}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INLINE KEYPAD (compact, appears next to answer cell)
+// ═══════════════════════════════════════════════════════════════
+function InlineKeypad({ base, onSubmit }) {
+  const [input, setInput] = useState("");
+  const maxLen = base === 16 ? 4 : 3;
+
+  const press = (ch) => { soundEngine.play("keypress"); if (input.length < maxLen) setInput(input + ch); };
+  const backspace = () => { soundEngine.play("keypress"); setInput(input.slice(0, -1)); };
+  const submit = () => { if (input.length > 0) { soundEngine.play("click"); onSubmit(input); setInput(""); } };
+
+  useEffect(() => { setInput(""); }, [base]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const k = e.key.toUpperCase();
+      if (k === "ENTER") { e.preventDefault(); submit(); return; }
+      if (k === "BACKSPACE") { e.preventDefault(); backspace(); return; }
+      if (base <= 10 && "0123456789".includes(k) && parseInt(k) < base) { e.preventDefault(); press(k); }
+      else if (base === 16 && DIGITS.includes(k)) { e.preventDefault(); press(k); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  });
+
+  const btnSz = 32;
+  const keys = base === 16
+    ? [["7","8","9","A"],["4","5","6","B"],["1","2","3","C"],["0","D","E","F"]]
+    : base === 8
+    ? [["5","6","7"],["2","3","4"],["0","1"]]
+    : [["7","8","9"],["4","5","6"],["1","2","3"],["0"]];
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      {/* Answer display */}
+      <div style={{
+        minWidth: 48, height: 44, borderRadius: 6, background: C.white,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+        fontFamily: "'Fira Code', monospace", color: C.charcoal,
+        border: `2px solid ${C.btn}`, padding: "0 8px",
+      }}>
+        {input || <span style={{ color: "#ccc" }}>?</span>}
+      </div>
+      {/* Mini keypad grid */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {keys.map((row, ri) => (
+          <div key={ri} style={{ display: "flex", gap: 2 }}>
+            {row.map(k => (
+              <button key={k} onClick={() => press(k)} style={{
+                width: btnSz, height: btnSz, borderRadius: 4,
+                border: "none", background: C.btn, color: C.white,
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
+                fontFamily: "'Fira Code', monospace", padding: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              onMouseDown={e => e.target.style.opacity = "0.7"}
+              onMouseUp={e => e.target.style.opacity = "1"}
+              >{k}</button>
+            ))}
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 2 }}>
+          <button onClick={backspace} style={{
+            width: btnSz, height: btnSz, borderRadius: 4,
+            border: "none", background: C.red, color: C.white,
+            fontSize: 14, fontWeight: 700, cursor: "pointer", padding: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>⌫</button>
+          <button onClick={submit} style={{
+            flex: 1, height: btnSz, borderRadius: 4,
+            border: "none", background: C.charcoal, color: C.white,
+            fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>✓</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME PLAY SCREEN
+// ═══════════════════════════════════════════════════════════════
+function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
+  const stage = STAGES.find(s => s.id === stageId);
+  const config = LEVEL_CONFIGS[stageId][level - 1];
+  const [rows, setRows] = useState([]);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const [correct, setCorrect] = useState(0);
+  const [wrong, setWrong] = useState(0);
+  const [mood, setMood] = useState("idle");
+  const [paused, setPaused] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [finishReason, setFinishReason] = useState(null);
+  const [activeRow, setActiveRow] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(config.timeLimit);
+  const [sfxOn, setSfxOn] = useState(soundEngine.enabled);
+  const generatedRef = useRef(0);
+  const answeredRef = useRef(0);
+  const rowIdRef = useRef(0);
+  const intervalRef = useRef(null);
+  const timerRef = useRef(null);
+  const correctRef = useRef(0);
+  const wrongRef = useRef(0);
+  const scoreRef = useRef(0);
+  const maxComboRef = useRef(0);
+
+  const generateProblem = useCallback(() => {
+    const decimal = Math.floor(Math.random() * (config.max + 1));
+    const direction = Math.random() < 0.5 ? "AtoB" : "BtoA";
+    const fromB = stage.fromBase;
+    const toB = stage.toBase;
+    let question, answer, answerBase, inputBase, sourceDisplay;
+    if (direction === "AtoB") {
+      const srcStr = toBase(decimal, fromB);
+      question = `(${fromB}) ${srcStr}`;
+      answer = toBase(decimal, toB).toUpperCase();
+      answerBase = toB;
+      inputBase = toB;
+      sourceDisplay = srcStr;
+    } else {
+      const srcStr = toBase(decimal, toB);
+      question = `(${toB}) ${srcStr}`;
+      answer = toBase(decimal, fromB).toUpperCase();
+      answerBase = fromB;
+      inputBase = fromB;
+      sourceDisplay = srcStr;
+    }
+    return {
+      id: ++rowIdRef.current, decimal, direction, question, answer,
+      answerBase, inputBase, bits: config.bits || 8,
+      sourceDisplay, createdAt: Date.now(),
+    };
+  }, [config, stage]);
+
+  const endGame = useCallback((reason) => {
+    if (finished) return;
+    setFinished(true);
+    setFinishReason(reason);
+    clearInterval(intervalRef.current);
+    clearInterval(timerRef.current);
+    if (reason === "overflow") soundEngine.play("gameover");
+    else soundEngine.play("levelclear");
+    const answered = correctRef.current + wrongRef.current;
+    const unanswered = TOTAL_QUESTIONS - answered;
+    const totalWrong = wrongRef.current + unanswered;
+    const accuracy = TOTAL_QUESTIONS > 0 ? Math.round(correctRef.current / TOTAL_QUESTIONS * 100) : 0;
+    const cleared = correctRef.current >= Math.ceil(TOTAL_QUESTIONS * 0.7) && accuracy >= 70;
+    setTimeout(() => {
+      onResult({
+        score: scoreRef.current, correct: correctRef.current, wrong: totalWrong,
+        accuracy, maxCombo: maxComboRef.current, cleared, reason,
+        totalQuestions: TOTAL_QUESTIONS,
+      });
+    }, 1500);
+  }, [finished, onResult]);
+
+  const addRow = useCallback(() => {
+    if (paused || finished) return;
+    setRows(prev => {
+      if (generatedRef.current >= TOTAL_QUESTIONS) return prev;
+      if (prev.length >= config.maxRows) {
+        endGame("overflow");
+        return prev;
+      }
+      soundEngine.play("newrow");
+      generatedRef.current++;
+      return [...prev, generateProblem()];
+    });
+  }, [paused, finished, config, generateProblem, endGame]);
+
+  useEffect(() => {
+    if (!finished && !paused) {
+      addRow();
+      intervalRef.current = setInterval(addRow, config.interval);
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) { endGame("timeout"); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => { clearInterval(intervalRef.current); clearInterval(timerRef.current); };
+  }, [paused, finished]);
+
+  const checkAnswer = (rowId, userAnswer) => {
+    if (finished) return;
+    const row = rows.find(r => r.id === rowId);
+    if (!row) return;
+    const ua = userAnswer.toUpperCase().replace(/^0+/, "") || "0";
+    const ca = row.answer.replace(/^0+/, "") || "0";
+
+    answeredRef.current++;
+
+    if (ua === ca) {
+      soundEngine.play("correct");
+      const timeBonus = Math.max(0, Math.floor((config.interval - (Date.now() - row.createdAt)) / 100));
+      const comboMult = combo >= 9 ? 3 : combo >= 4 ? 2 : combo >= 2 ? 1.5 : 1;
+      const pts = Math.round((100 + timeBonus) * comboMult);
+      scoreRef.current += pts;
+      setScore(s => s + pts);
+      setCombo(c => {
+        const nc = c + 1;
+        if (nc === 3 || nc === 5 || nc === 10) soundEngine.play("combo");
+        maxComboRef.current = Math.max(maxComboRef.current, nc);
+        setMaxCombo(m => Math.max(m, nc));
+        return nc;
+      });
+      correctRef.current++;
+      setCorrect(c => c + 1);
+      setMood("happy");
+      setTimeout(() => setMood("idle"), 1200);
+      setRows(prev => prev.filter(r => r.id !== rowId));
+      setActiveRow(null);
+    } else {
+      soundEngine.play("wrong");
+      scoreRef.current = Math.max(0, scoreRef.current - 50);
+      setScore(s => Math.max(0, s - 50));
+      setCombo(0);
+      wrongRef.current++;
+      setWrong(w => w + 1);
+      setMood("sad");
+      setTimeout(() => setMood("idle"), 1500);
+      setRows(prev => prev.filter(r => r.id !== rowId));
+      setActiveRow(null);
+    }
+
+    if (answeredRef.current >= TOTAL_QUESTIONS) {
+      setTimeout(() => endGame("complete"), 300);
+    }
+  };
+
+  const linesLeft = config.maxRows - rows.length;
+  const answered = correct + wrong;
+  const progressPct = Math.round((answered / TOTAL_QUESTIONS) * 100);
+  const timePct = Math.round((timeLeft / config.timeLimit) * 100);
+  const timeMin = Math.floor(timeLeft / 60);
+  const timeSec = (timeLeft % 60).toString().padStart(2, "0");
+  const hasBinary = stage.fromBase === 2 || stage.toBase === 2;
+  const numBits = config.bits || 8;
+  const cellSize = numBits <= 8 ? "clamp(32px, 9vw, 44px)" : "clamp(24px, 6vw, 34px)";
+
+  if (finished) {
+    const msgs = { complete: "문제 완료!", timeout: "시간 종료!", overflow: "게임 오버!" };
+    return (
+      <div style={{
+        minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", padding: 20,
+      }}>
+        <CharAvatar charId={charId} mood={finishReason === "overflow" ? "sad" : "think"} size={80} />
+        <h2 style={{ color: finishReason === "overflow" ? C.red : C.navy, margin: "16px 0 8px", fontSize: 24 }}>
+          {msgs[finishReason]}
+        </h2>
+        <p style={{ color: C.gray, fontSize: 14 }}>결과를 집계하고 있어요...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgGameplay, C.bgAlt), display: "flex", flexDirection: "column",
+      padding: "12px 8px",
+    }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 6, padding: "0 4px",
+      }}>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[
+            { label: "점수", value: score.toLocaleString(), color: C.navy },
+            { label: "Lv", value: level, color: C.mint },
+            { label: "남은줄", value: linesLeft, color: linesLeft <= 3 ? C.red : C.amber },
+          ].map(item => (
+            <div key={item.label} style={{
+              background: C.scoreboardBg, borderRadius: 10, padding: "5px 8px", textAlign: "center",
+              border: `1.5px solid ${C.scoreboardStroke}`, minWidth: 50,
+            }}>
+              <div style={{ fontSize: 9, color: C.gray, fontWeight: 600 }}>{item.label}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: item.color, fontFamily: "'Fira Code', monospace" }}>
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {combo >= 2 && (
+            <div style={{
+              background: C.amber, color: C.white, borderRadius: 20, padding: "3px 10px",
+              fontSize: 11, fontWeight: 700, animation: "pulse 0.6s ease-in-out infinite",
+            }}>
+              {combo}x COMBO
+            </div>
+          )}
+          <button onClick={() => {
+            const next = !sfxOn;
+            setSfxOn(next);
+            soundEngine.enabled = next;
+            if (next) soundEngine.play("click");
+          }} style={{
+            background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
+            padding: "6px 10px", fontSize: 14, cursor: "pointer",
+            color: sfxOn ? C.navy : C.red, fontWeight: 600,
+          }}>{sfxOn ? "🔊" : "🔇"}</button>
+          <button onClick={() => { soundEngine.play("click"); setPaused(!paused); clearInterval(intervalRef.current); clearInterval(timerRef.current); }} style={{
+            background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
+            padding: "6px 10px", fontSize: 18, cursor: "pointer",
+          }}>{paused ? "▶" : "⏸"}</button>
+          <button onClick={() => { soundEngine.play("click"); clearInterval(intervalRef.current); clearInterval(timerRef.current); onExit(); }} style={{
+            background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
+            padding: "6px 10px", fontSize: 11, cursor: "pointer", color: C.red,
+          }}>종료</button>
+        </div>
+      </div>
+
+      {/* Progress + Timer bar */}
+      <div style={{
+        display: "flex", gap: 8, marginBottom: 6, padding: "0 4px",
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.gray, marginBottom: 2 }}>
+            <span>진행 {answered}/{TOTAL_QUESTIONS}</span>
+            <span>정답 {correct}</span>
+          </div>
+          <div style={{ height: 6, background: "#e0e7ee", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{
+              height: "100%", width: `${progressPct}%`, borderRadius: 3,
+              background: `linear-gradient(90deg, ${C.mint}, ${C.navy})`,
+              transition: "width 0.3s",
+            }} />
+          </div>
+        </div>
+        <div style={{ width: 100 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginBottom: 2 }}>
+            <span style={{ color: C.gray }}>시간</span>
+            <span style={{ color: timeLeft <= 30 ? C.red : C.gray, fontWeight: 600, fontFamily: "'Fira Code', monospace" }}>
+              {timeMin}:{timeSec}
+            </span>
+          </div>
+          <div style={{ height: 6, background: "#e0e7ee", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{
+              height: "100%", width: `${timePct}%`, borderRadius: 3,
+              background: timeLeft <= 30 ? C.red : C.amber,
+              transition: "width 1s linear",
+            }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Guide bar TOP */}
+      {hasBinary && config.showGuide && (
+        <div style={{
+          display: "flex", justifyContent: "flex-start", gap: 2, marginBottom: 0,
+          background: C.white, borderRadius: "8px 8px 0 0", padding: "6px 10px",
+          border: `1.5px solid ${C.frameStroke}`, borderBottom: "none",
+        }}>
+          {Array.from({ length: numBits }, (_, i) => Math.pow(2, numBits - 1 - i)).map((v, i) => (
+            <div key={i} style={{
+              width: cellSize, textAlign: "center",
+              fontSize: 11, color: C.navy, fontWeight: 700,
+              fontFamily: "'Fira Code', monospace", flexShrink: 0,
+            }}>{v}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Game board */}
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column-reverse", gap: 3,
+        padding: "6px", overflowY: "auto", minHeight: 200,
+        background: C.frameBg, borderRadius: hasBinary && config.showGuide ? 0 : 8,
+        border: `1.5px solid ${C.frameStroke}`,
+        borderTop: hasBinary && config.showGuide ? "none" : `1.5px solid ${C.frameStroke}`,
+        borderBottom: hasBinary && config.showGuide ? "none" : `1.5px solid ${C.frameStroke}`,
+        position: "relative",
+      }}>
+        {/* Danger line at bottom */}
+        {rows.length > 0 && (
+          <div style={{
+            borderBottom: `2px dashed ${linesLeft <= 3 ? "#ff4444" : "#ff8844"}`,
+            margin: "0 0 2px", padding: "0 0 4px", textAlign: "center",
+            fontSize: 10, color: linesLeft <= 3 ? "#ff4444" : "#ff8844", fontWeight: 600,
+          }}>
+            {linesLeft <= 3 ? "⚠ DANGER" : `↑ ${linesLeft} lines left`}
+          </div>
+        )}
+
+        {/* Rows */}
+        {[...rows].reverse().map(row => {
+          const isActive = activeRow === row.id;
+          const isBitInput = row.inputBase === 2;
+          const isBitDisplay = row.answerBase !== 2 && (stage.fromBase === 2 || stage.toBase === 2);
+
+          return (
+            <div key={row.id} style={{
+              display: "flex", alignItems: "center", gap: 2,
+              padding: "4px 4px", borderRadius: 6,
+              background: isActive ? "rgba(232,184,100,0.12)" : "rgba(0,0,0,0.02)",
+              border: `1px solid ${isActive ? "rgba(232,184,100,0.3)" : "transparent"}`,
+              animation: "slideIn 0.3s ease-out",
+              minHeight: 52,
+            }}
+            onClick={() => !isBitInput && setActiveRow(row.id)}
+            >
+              {/* Type A: dec→bin — toggleable bits + target decimal */}
+              {isBitInput && (
+                <>
+                  <BitToggleRow
+                    key={row.id}
+                    bits={row.bits}
+                    targetDecimal={row.decimal}
+                    onCorrect={() => checkAnswer(row.id, row.answer)}
+                  />
+                  <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
+                  <div style={{
+                    minWidth: 48, height: cellSize, borderRadius: 6,
+                    background: C.white, color: C.charcoal,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                    fontFamily: "'Fira Code', monospace", flexShrink: 0,
+                    border: `1.5px solid ${C.frameStroke}`,
+                  }}>
+                    {row.sourceDisplay}
+                  </div>
+                </>
+              )}
+
+              {/* Type B: bin→dec — fixed bits + answer cell + inline keypad */}
+              {!isBitInput && isBitDisplay && (() => {
+                const binStr = padBinary(toBase(row.decimal, 2), row.bits);
+                return (
+                  <>
+                    <div style={{ display: "flex", gap: 2 }}>
+                      {binStr.split("").map((b, i) => (
+                        <div key={i} style={{
+                          width: cellSize, height: cellSize,
+                          borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+                          background: b === "1" ? C.bit1 : C.bit0,
+                          color: b === "1" ? C.white : C.bit0t,
+                          fontSize: numBits <= 8 ? "clamp(14px, 3.5vw, 20px)" : "clamp(11px, 2.5vw, 15px)",
+                          fontWeight: 700, fontFamily: "'Fira Code', monospace",
+                          border: `1px solid ${b === "1" ? "#4A7EA6" : C.lightBorder}`,
+                          flexShrink: 0,
+                        }}>
+                          {b}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
+                    {isActive ? (
+                      <InlineKeypad base={row.inputBase} onSubmit={(val) => checkAnswer(row.id, val)} />
+                    ) : (
+                      <div onClick={(e) => { e.stopPropagation(); setActiveRow(row.id); }} style={{
+                        minWidth: 48, height: cellSize, borderRadius: 6,
+                        background: C.white, color: C.charcoal,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                        fontFamily: "'Fira Code', monospace", cursor: "pointer", flexShrink: 0,
+                      }}>
+                        ?
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* Type C: non-binary stages */}
+              {!isBitInput && !isBitDisplay && (
+                <>
+                  <div style={{
+                    fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                    color: C.charcoal, fontFamily: "'Fira Code', monospace",
+                    background: C.bit0, borderRadius: 6,
+                    padding: "8px 14px", flexShrink: 0,
+                  }}>
+                    {row.question}
+                  </div>
+                  <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
+                  {isActive ? (
+                    <InlineKeypad base={row.inputBase} onSubmit={(val) => checkAnswer(row.id, val)} />
+                  ) : (
+                    <div onClick={(e) => { e.stopPropagation(); setActiveRow(row.id); }} style={{
+                      minWidth: 56, height: 44, borderRadius: 6,
+                      background: C.white, color: C.charcoal,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                      fontFamily: "'Fira Code', monospace", cursor: "pointer", flexShrink: 0,
+                    }}>
+                      ?
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {rows.length === 0 && !paused && (
+          <div style={{ textAlign: "center", color: C.gray, padding: 40, fontSize: 14 }}>
+            {generatedRef.current >= TOTAL_QUESTIONS ? "모든 문제가 출제되었습니다!" : "문제가 곧 나타납니다..."}
+          </div>
+        )}
+      </div>
+
+      {/* Guide bar BOTTOM (identical to top) */}
+      {hasBinary && config.showGuide && (
+        <div style={{
+          display: "flex", justifyContent: "flex-start", gap: 2, marginTop: 0,
+          background: C.white, borderRadius: "0 0 8px 8px", padding: "6px 10px",
+          border: `1.5px solid ${C.frameStroke}`, borderTop: "none",
+        }}>
+          {Array.from({ length: numBits }, (_, i) => Math.pow(2, numBits - 1 - i)).map((v, i) => (
+            <div key={i} style={{
+              width: cellSize, textAlign: "center",
+              fontSize: 11, color: C.navy, fontWeight: 700,
+              fontFamily: "'Fira Code', monospace", flexShrink: 0,
+            }}>{v}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Character */}
+      <div style={{
+        display: "flex", justifyContent: "flex-end", padding: "4px 8px",
+      }}>
+        <CharAvatar charId={charId} mood={mood} size={52} />
+      </div>
+
+      {/* Pause overlay */}
+      {paused && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+        }}>
+          <div style={{
+            background: C.white, borderRadius: 20, padding: 32, textAlign: "center",
+            maxWidth: 300, width: "90%",
+          }}>
+            <h3 style={{ margin: "0 0 16px", color: C.navy }}>일시정지</h3>
+            <div style={{ fontSize: 13, color: C.gray, marginBottom: 16 }}>
+              {answered}/{TOTAL_QUESTIONS}문제 · {timeMin}:{timeSec} 남음
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button onClick={() => {
+                setPaused(false);
+                intervalRef.current = setInterval(addRow, config.interval);
+                timerRef.current = setInterval(() => {
+                  setTimeLeft(prev => { if (prev <= 1) { endGame("timeout"); return 0; } return prev - 1; });
+                }, 1000);
+              }} style={{
+                background: C.btn, color: C.white, border: "none", borderRadius: 12,
+                padding: "12px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer",
+              }}>계속하기</button>
+              <button onClick={() => { clearInterval(intervalRef.current); clearInterval(timerRef.current); onExit(); }} style={{
+                background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 12,
+                padding: "12px 24px", fontSize: 14, cursor: "pointer", color: C.gray,
+              }}>게임 종료</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESULT SCREEN
+// ═══════════════════════════════════════════════════════════════
+function ResultScreen({ result, stageId, level, charId, save, onSave, onRetry, onNext, onStageMap }) {
+  const stars = getStars(result.accuracy);
+  const cleared = result.cleared;
+  const reasonText = { complete: "20문제 완료", timeout: "시간 초과", overflow: "행 오버플로" };
+
+  useEffect(() => {
+    if (cleared) soundEngine.play("levelclear");
+  }, []);
+
+  useEffect(() => {
+    const ns = { ...save };
+    const ld = ns.stages[stageId].levels[level];
+    if (result.score > ld.high) ld.high = result.score;
+    if (stars > ld.stars) ld.stars = stars;
+    if (cleared) ld.cleared = true;
+    onSave(ns);
+  }, []);
+
+  return (
+    <div style={{
+      minHeight: "100vh", ...skinBg(SKIN.bgResult, C.bg),
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      padding: 20, textAlign: "center",
+    }}>
+      <CharAvatar charId={charId} mood={cleared ? "cheer" : "think"} size={80} />
+      <h2 style={{
+        fontSize: "clamp(22px, 5vw, 32px)", fontWeight: 800,
+        color: cleared ? C.navy : C.red, margin: "16px 0 8px",
+      }}>
+        {cleared ? "레벨 클리어!" : "아쉬워요..."}
+      </h2>
+      {cleared && (
+        <div style={{ fontSize: 32, marginBottom: 12 }}>
+          {"★".repeat(stars)}{"☆".repeat(3 - stars)}
+        </div>
+      )}
+      <div style={{
+        background: C.white, borderRadius: 16, padding: 20, maxWidth: 300, width: "100%",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 24,
+        border: `1px solid ${C.lightBorder}`,
+      }}>
+        {[
+          { label: "종료 사유", value: reasonText[result.reason] || "완료" },
+          { label: "최종 점수", value: `${result.score.toLocaleString()}점` },
+          { label: "정답률", value: `${result.accuracy}% (${result.correct}/${result.totalQuestions}문제)` },
+          { label: "최대 콤보", value: `${result.maxCombo}연속` },
+        ].map(item => (
+          <div key={item.label} style={{
+            display: "flex", justifyContent: "space-between", padding: "8px 0",
+            borderBottom: `1px solid ${C.lightBorder}`,
+          }}>
+            <span style={{ color: C.gray, fontSize: 14 }}>{item.label}</span>
+            <span style={{ fontWeight: 700, color: C.charcoal, fontSize: 14 }}>{item.value}</span>
+          </div>
+        ))}
+      </div>
+      {!cleared && (
+        <p style={{ color: C.gray, fontSize: 13, marginBottom: 16 }}>
+          15문제 중 11문제 이상 정답(70%)이면 클리어!
+        </p>
+      )}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+        <button onClick={() => { soundEngine.play("click"); onRetry(); }} style={{
+          background: C.white, color: C.btn, border: `1.5px solid ${C.btn}`,
+          borderRadius: 12, padding: "12px 24px", fontSize: 15, fontWeight: 600, cursor: "pointer",
+        }}>다시 하기</button>
+        {cleared && level < 5 && (
+          <button onClick={() => { soundEngine.play("click"); onNext(); }} style={{
+            background: C.btn, color: C.white, border: "none",
+            borderRadius: 12, padding: "12px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 4px 16px rgba(44,62,107,0.3)",
+          }}>다음 레벨 →</button>
+        )}
+        <button onClick={() => { soundEngine.play("click"); onStageMap(); }} style={{
+          background: "none", color: C.gray, border: `1px solid ${C.lightBorder}`,
+          borderRadius: 12, padding: "12px 24px", fontSize: 14, cursor: "pointer",
+        }}>스테이지 선택</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════════
+function App() {
+  const [screen, setScreen] = useState("landing");
+  const [save, setSave] = useState(getInitialSave);
+  const [currentStage, setCurrentStage] = useState(1);
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [result, setResult] = useState(null);
+
+  const charId = save.character || "eobot";
+
+  const updateSave = (ns) => { setSave(ns); saveToDisk(ns); };
+
+  const startLevel = (stageId, lv) => {
+    setCurrentStage(stageId);
+    setCurrentLevel(lv);
+    if (!save.stages[stageId].tutorialSeen) {
+      setScreen("tutorial");
+    } else {
+      setScreen("gameplay");
+    }
+  };
+
+  return (
+    <div style={{ fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh" }}>
+
+      {screen === "landing" && (
+        <LandingScreen onStart={() => {
+          if (save.character) setScreen("stageMap");
+          else setScreen("characterSelect");
+        }} />
+      )}
+
+      {screen === "characterSelect" && (
+        <CharacterSelect
+          selected={save.character}
+          onSelect={(id) => {
+            const ns = { ...save, character: id };
+            updateSave(ns);
+            setScreen("stageMap");
+          }}
+        />
+      )}
+
+      {screen === "stageMap" && (
+        <StageMap
+          save={save}
+          charId={charId}
+          onStageSelect={(id) => { setCurrentStage(id); setScreen("levelSelect"); }}
+          onHome={() => setScreen("landing")}
+        />
+      )}
+
+      {screen === "levelSelect" && (
+        <LevelSelect
+          stageId={currentStage}
+          save={save}
+          charId={charId}
+          onLevelSelect={(lv) => startLevel(currentStage, lv)}
+          onBack={() => setScreen("stageMap")}
+        />
+      )}
+
+      {screen === "tutorial" && (
+        <TutorialScreen
+          stageId={currentStage}
+          charId={charId}
+          onComplete={() => {
+            const ns = { ...save };
+            ns.stages[currentStage].tutorialSeen = true;
+            updateSave(ns);
+            setScreen("gameplay");
+          }}
+        />
+      )}
+
+      {screen === "gameplay" && (
+        <GamePlay
+          key={`${currentStage}-${currentLevel}-${Date.now()}`}
+          stageId={currentStage}
+          level={currentLevel}
+          charId={charId}
+          save={save}
+          onResult={(r) => { setResult(r); setScreen("result"); }}
+          onExit={() => setScreen("levelSelect")}
+        />
+      )}
+
+      {screen === "result" && result && (
+        <ResultScreen
+          result={result}
+          stageId={currentStage}
+          level={currentLevel}
+          charId={charId}
+          save={save}
+          onSave={updateSave}
+          onRetry={() => setScreen("gameplay")}
+          onNext={() => { setCurrentLevel(l => l + 1); setScreen("gameplay"); }}
+          onStageMap={() => setScreen("stageMap")}
+        />
+      )}
+    </div>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
