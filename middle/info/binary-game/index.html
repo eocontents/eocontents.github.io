@@ -98,16 +98,80 @@ const LEVEL_CONFIGS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// SOUND ENGINE (Web Audio API)
+// SOUND ENGINE (SFX via Web Audio API + BGM via HTML Audio)
 // ═══════════════════════════════════════════════════════════════
+const BGM_BASE = "./assets/audio/";
+const BGM_TRACKS = {
+  menu: BGM_BASE + "bgm_menu.mp3",
+  play: BGM_BASE + "bgm_play.mp3",
+  tense: BGM_BASE + "bgm_tense.mp3",
+  result: BGM_BASE + "bgm_result.mp3",
+};
+
 class SoundEngine {
   constructor() {
     this.ctx = null;
     this.enabled = true;
+    this.bgmEnabled = true;
+    this.bgmVolume = 0.4;
+    this.currentBgm = null;
+    this.currentBgmKey = null;
+    this.bgmAudio = null;
   }
   init() {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (this.ctx.state === "suspended") this.ctx.resume();
+  }
+  playBgm(key) {
+    if (this.currentBgmKey === key && this.bgmAudio && !this.bgmAudio.paused) return;
+    this.stopBgm();
+    if (!this.bgmEnabled) return;
+    const url = BGM_TRACKS[key];
+    if (!url) return;
+    try {
+      this.bgmAudio = new Audio(url);
+      this.bgmAudio.volume = this.bgmVolume;
+      this.bgmAudio.loop = (key !== "result");
+      this.currentBgmKey = key;
+      const playPromise = this.bgmAudio.play();
+      if (playPromise) playPromise.catch(() => {});
+    } catch (e) {}
+  }
+  stopBgm() {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+      this.bgmAudio = null;
+      this.currentBgmKey = null;
+    }
+  }
+  pauseBgm() {
+    if (this.bgmAudio && !this.bgmAudio.paused) this.bgmAudio.pause();
+  }
+  resumeBgm() {
+    if (this.bgmAudio && this.bgmAudio.paused && this.bgmEnabled) {
+      const p = this.bgmAudio.play();
+      if (p) p.catch(() => {});
+    }
+  }
+  setBgmEnabled(on) {
+    this.bgmEnabled = on;
+    if (!on) this.stopBgm();
+  }
+  crossfadeTo(key) {
+    if (this.currentBgmKey === key) return;
+    if (this.bgmAudio) {
+      const old = this.bgmAudio;
+      let vol = old.volume;
+      const fade = setInterval(() => {
+        vol -= 0.05;
+        if (vol <= 0) { clearInterval(fade); old.pause(); old.currentTime = 0; }
+        else old.volume = vol;
+      }, 50);
+    }
+    this.bgmAudio = null;
+    this.currentBgmKey = null;
+    setTimeout(() => this.playBgm(key), 300);
   }
   play(type) {
     if (!this.enabled || !this.ctx) return;
@@ -119,19 +183,15 @@ class SoundEngine {
       g.connect(this.ctx.destination);
       switch (type) {
         case "toggle":
-          o.frequency.value = 800;
-          o.type = "sine";
+          o.frequency.value = 800; o.type = "sine";
           g.gain.setValueAtTime(0.15, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-          o.start(t); o.stop(t + 0.08);
-          break;
+          o.start(t); o.stop(t + 0.08); break;
         case "keypress":
-          o.frequency.value = 600;
-          o.type = "sine";
+          o.frequency.value = 600; o.type = "sine";
           g.gain.setValueAtTime(0.12, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-          o.start(t); o.stop(t + 0.06);
-          break;
+          o.start(t); o.stop(t + 0.06); break;
         case "correct":
           o.frequency.setValueAtTime(523, t);
           o.frequency.setValueAtTime(659, t + 0.1);
@@ -139,16 +199,14 @@ class SoundEngine {
           o.type = "sine";
           g.gain.setValueAtTime(0.2, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-          o.start(t); o.stop(t + 0.4);
-          break;
+          o.start(t); o.stop(t + 0.4); break;
         case "wrong":
           o.frequency.setValueAtTime(300, t);
           o.frequency.setValueAtTime(200, t + 0.15);
           o.type = "square";
           g.gain.setValueAtTime(0.15, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-          o.start(t); o.stop(t + 0.35);
-          break;
+          o.start(t); o.stop(t + 0.35); break;
         case "combo":
           [523, 659, 784, 1047].forEach((f, i) => {
             const o2 = this.ctx.createOscillator();
@@ -158,8 +216,7 @@ class SoundEngine {
             g2.gain.setValueAtTime(0.15, t + i * 0.08);
             g2.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.2);
             o2.start(t + i * 0.08); o2.stop(t + i * 0.08 + 0.2);
-          });
-          o.stop(t); break;
+          }); o.stop(t); break;
         case "levelclear":
           [523, 659, 784, 1047, 1319].forEach((f, i) => {
             const o2 = this.ctx.createOscillator();
@@ -169,32 +226,25 @@ class SoundEngine {
             g2.gain.setValueAtTime(0.2, t + i * 0.12);
             g2.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.5);
             o2.start(t + i * 0.12); o2.stop(t + i * 0.12 + 0.5);
-          });
-          o.stop(t); break;
+          }); o.stop(t); break;
         case "gameover":
           o.frequency.setValueAtTime(400, t);
           o.frequency.linearRampToValueAtTime(150, t + 0.8);
           o.type = "sawtooth";
           g.gain.setValueAtTime(0.12, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 1);
-          o.start(t); o.stop(t + 1);
-          break;
+          o.start(t); o.stop(t + 1); break;
         case "newrow":
-          o.frequency.value = 440;
-          o.type = "sine";
+          o.frequency.value = 440; o.type = "sine";
           g.gain.setValueAtTime(0.05, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-          o.start(t); o.stop(t + 0.15);
-          break;
+          o.start(t); o.stop(t + 0.15); break;
         case "click":
-          o.frequency.value = 700;
-          o.type = "sine";
+          o.frequency.value = 700; o.type = "sine";
           g.gain.setValueAtTime(0.1, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-          o.start(t); o.stop(t + 0.05);
-          break;
-        default:
-          o.stop(t);
+          o.start(t); o.stop(t + 0.05); break;
+        default: o.stop(t);
       }
     } catch (e) {}
   }
@@ -399,7 +449,7 @@ function LandingScreen({ onStart }) {
           edu.link/binary
         </div>
       </div>
-      <button onClick={() => { soundEngine.init(); soundEngine.play("click"); onStart(); }} style={{
+      <button onClick={() => { soundEngine.init(); soundEngine.play("click"); soundEngine.playBgm("menu"); onStart(); }} style={{
         ...skinContain(SKIN.btnPrimary, C.btn), color: C.white, border: "none", borderRadius: 16,
         padding: "16px 48px", fontSize: "clamp(16px, 3vw, 20px)", fontWeight: 700,
         cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s",
@@ -954,6 +1004,8 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   const [activeRow, setActiveRow] = useState(null);
   const [timeLeft, setTimeLeft] = useState(config.timeLimit);
   const [sfxOn, setSfxOn] = useState(soundEngine.enabled);
+  const [bgmOn, setBgmOn] = useState(soundEngine.bgmEnabled);
+  const prevLinesRef = useRef(null);
   const generatedRef = useRef(0);
   const answeredRef = useRef(0);
   const rowIdRef = useRef(0);
@@ -1090,6 +1142,17 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   };
 
   const linesLeft = config.maxRows - rows.length;
+
+  // Crossfade to tense BGM when danger
+  useEffect(() => {
+    if (finished || paused) return;
+    if (linesLeft <= 3 && prevLinesRef.current > 3) {
+      soundEngine.crossfadeTo("tense");
+    } else if (linesLeft > 3 && prevLinesRef.current !== null && prevLinesRef.current <= 3) {
+      soundEngine.crossfadeTo("play");
+    }
+    prevLinesRef.current = linesLeft;
+  }, [linesLeft, finished, paused]);
   const answered = correct + wrong;
   const progressPct = Math.round((answered / TOTAL_QUESTIONS) * 100);
   const timePct = Math.round((timeLeft / config.timeLimit) * 100);
@@ -1161,7 +1224,17 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
             padding: "6px 10px", fontSize: 14, cursor: "pointer",
             color: sfxOn ? C.navy : C.red, fontWeight: 600,
           }}>{sfxOn ? "🔊" : "🔇"}</button>
-          <button onClick={() => { soundEngine.play("click"); setPaused(!paused); clearInterval(intervalRef.current); clearInterval(timerRef.current); }} style={{
+          <button onClick={() => {
+            const next = !bgmOn;
+            setBgmOn(next);
+            soundEngine.setBgmEnabled(next);
+            if (next) soundEngine.playBgm(linesLeft <= 3 ? "tense" : "play");
+          }} style={{
+            background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
+            padding: "6px 10px", fontSize: 14, cursor: "pointer",
+            color: bgmOn ? C.navy : C.red, fontWeight: 600,
+          }}>{bgmOn ? "🎵" : "🎵❌"}</button>
+          <button onClick={() => { soundEngine.play("click"); setPaused(!paused); clearInterval(intervalRef.current); clearInterval(timerRef.current); soundEngine.pauseBgm(); }} style={{
             background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
             padding: "6px 10px", fontSize: 18, cursor: "pointer",
           }}>{paused ? "▶" : "⏸"}</button>
@@ -1402,6 +1475,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button onClick={() => {
                 setPaused(false);
+                soundEngine.resumeBgm();
                 intervalRef.current = setInterval(addRow, config.interval);
                 timerRef.current = setInterval(() => {
                   setTimeLeft(prev => { if (prev <= 1) { endGame("timeout"); return 0; } return prev - 1; });
@@ -1520,6 +1594,25 @@ function App() {
   const charId = save.character || "eobot";
 
   const updateSave = (ns) => { setSave(ns); saveToDisk(ns); };
+
+  // BGM switching based on screen
+  useEffect(() => {
+    switch (screen) {
+      case "landing":
+      case "characterSelect":
+      case "stageMap":
+      case "levelSelect":
+        soundEngine.playBgm("menu"); break;
+      case "tutorial":
+        soundEngine.playBgm("menu"); break;
+      case "gameplay":
+        soundEngine.playBgm("play"); break;
+      case "result":
+        soundEngine.stopBgm();
+        soundEngine.playBgm("result"); break;
+      default: break;
+    }
+  }, [screen]);
 
   const startLevel = (stageId, lv) => {
     setCurrentStage(stageId);
