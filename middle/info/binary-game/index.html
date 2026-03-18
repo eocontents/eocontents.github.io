@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>이오프렌즈 진법 변환 게임</title>
   <meta name="description" content="2진수, 8진수, 10진수, 16진수 변환을 게임으로 연습하자!">
   <meta property="og:title" content="이오프렌즈 진법 변환 게임">
@@ -19,7 +22,7 @@
     ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
     #root { min-height: 100vh; }
   </style>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css?v=1773837538">
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
@@ -488,11 +491,7 @@ function CharacterSelect({ onSelect, selected }) {
             gap: 6, transition: "all 0.2s", transform: hover === c.id ? "scale(1.08)" : "scale(1)",
             boxShadow: hover === c.id ? "0 4px 16px rgba(0,0,0,0.12)" : "none",
           }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: "50%", background: c.color,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20, border: `2px solid ${c.accent}`,
-            }}>😊</div>
+            <CharAvatar charId={c.id} mood="idle" size={44} />
             <div style={{ fontSize: 11, fontWeight: 600, color: C.charcoal }}>{c.name}</div>
           </button>
         ))}
@@ -1501,7 +1500,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
 function ResultScreen({ result, stageId, level, charId, save, onSave, onRetry, onNext, onStageMap }) {
   const stars = getStars(result.accuracy);
   const cleared = result.cleared;
-  const reasonText = { complete: "20문제 완료", timeout: "시간 초과", overflow: "행 오버플로" };
+  const reasonText = { complete: "15문제 완료", timeout: "시간 초과", overflow: "남은 줄 소진" };
 
   useEffect(() => {
     if (cleared) soundEngine.play("levelclear");
