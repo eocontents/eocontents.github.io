@@ -184,22 +184,22 @@ class SoundEngine {
       switch (type) {
         case "toggle":
           o.frequency.value = 800; o.type = "sine";
-          g.gain.setValueAtTime(0.15, t);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-          o.start(t); o.stop(t + 0.08); break;
+          g.gain.setValueAtTime(0.35, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          o.start(t); o.stop(t + 0.1); break;
         case "keypress":
           o.frequency.value = 600; o.type = "sine";
-          g.gain.setValueAtTime(0.12, t);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-          o.start(t); o.stop(t + 0.06); break;
+          g.gain.setValueAtTime(0.25, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          o.start(t); o.stop(t + 0.08); break;
         case "correct":
           o.frequency.setValueAtTime(523, t);
           o.frequency.setValueAtTime(659, t + 0.1);
           o.frequency.setValueAtTime(784, t + 0.2);
           o.type = "sine";
-          g.gain.setValueAtTime(0.2, t);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-          o.start(t); o.stop(t + 0.4); break;
+          g.gain.setValueAtTime(0.4, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          o.start(t); o.stop(t + 0.5); break;
         case "wrong":
           o.frequency.setValueAtTime(300, t);
           o.frequency.setValueAtTime(200, t + 0.15);
@@ -403,7 +403,7 @@ function CharAvatar({ charId, mood = "idle", size = 80 }) {
 function LandingScreen({ onStart }) {
   return (
     <div style={{
-      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg),
+      minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg),
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "20px", textAlign: "center",
     }}>
@@ -424,12 +424,9 @@ function LandingScreen({ onStart }) {
       }}>
         {CHARACTERS.map(ch => (
           <div key={ch.id} style={{
-            width: 56, height: 56, borderRadius: "50%", background: ch.color,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, border: `2px solid ${ch.accent}`,
             animation: `float 3s ease-in-out infinite ${Math.random() * 2}s`,
           }}>
-            😊
+            <CharAvatar charId={ch.id} mood="landing" size={56} />
           </div>
         ))}
       </div>
@@ -472,7 +469,7 @@ function CharacterSelect({ onSelect, selected }) {
   const ch = CHARACTERS.find(c => c.id === hover);
   return (
     <div style={{
-      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), display: "flex", flexDirection: "column",
+      minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg), display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", padding: 20,
     }}>
       <h2 style={{ fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 700, color: C.navy, margin: "0 0 8px" }}>
@@ -597,7 +594,7 @@ function LevelSelect({ stageId, save, charId, onLevelSelect, onBack }) {
   const stageData = save.stages[stageId];
   return (
     <div style={{
-      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), padding: "20px 16px",
+      minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg), padding: "20px 16px",
       display: "flex", flexDirection: "column", alignItems: "center",
     }}>
       <div style={{
@@ -755,7 +752,7 @@ function TutorialScreen({ stageId, charId, onComplete }) {
 
   return (
     <div style={{
-      minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), display: "flex", flexDirection: "column",
+      minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg), display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", padding: 20,
     }}>
       <CharAvatar charId={charId} mood="guide" size={72} />
@@ -1005,7 +1002,6 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   const [timeLeft, setTimeLeft] = useState(config.timeLimit);
   const [sfxOn, setSfxOn] = useState(soundEngine.enabled);
   const [bgmOn, setBgmOn] = useState(soundEngine.bgmEnabled);
-  const prevLinesRef = useRef(null);
   const generatedRef = useRef(0);
   const answeredRef = useRef(0);
   const rowIdRef = useRef(0);
@@ -1142,17 +1138,15 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   };
 
   const linesLeft = config.maxRows - rows.length;
+  const isDanger = linesLeft <= 3;
 
-  // Crossfade to tense BGM when danger
+  // Visual danger pulse (no BGM change)
+  const [dangerFlash, setDangerFlash] = useState(false);
   useEffect(() => {
-    if (finished || paused) return;
-    if (linesLeft <= 3 && prevLinesRef.current > 3) {
-      soundEngine.crossfadeTo("tense");
-    } else if (linesLeft > 3 && prevLinesRef.current !== null && prevLinesRef.current <= 3) {
-      soundEngine.crossfadeTo("play");
-    }
-    prevLinesRef.current = linesLeft;
-  }, [linesLeft, finished, paused]);
+    if (!isDanger || finished || paused) { setDangerFlash(false); return; }
+    const id = setInterval(() => setDangerFlash(v => !v), 500);
+    return () => clearInterval(id);
+  }, [isDanger, finished, paused]);
   const answered = correct + wrong;
   const progressPct = Math.round((answered / TOTAL_QUESTIONS) * 100);
   const timePct = Math.round((timeLeft / config.timeLimit) * 100);
@@ -1166,7 +1160,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
     const msgs = { complete: "문제 완료!", timeout: "시간 종료!", overflow: "게임 오버!" };
     return (
       <div style={{
-        minHeight: "100vh", ...skinBg(SKIN.bgLanding, C.bg), display: "flex", flexDirection: "column",
+        minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg), display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", padding: 20,
       }}>
         <CharAvatar charId={charId} mood={finishReason === "overflow" ? "sad" : "think"} size={80} />
@@ -1228,7 +1222,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
             const next = !bgmOn;
             setBgmOn(next);
             soundEngine.setBgmEnabled(next);
-            if (next) soundEngine.playBgm(linesLeft <= 3 ? "tense" : "play");
+            if (next) soundEngine.playBgm("play");
           }} style={{
             background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
             padding: "6px 10px", fontSize: 14, cursor: "pointer",
@@ -1301,10 +1295,12 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
         flex: 1, display: "flex", flexDirection: "column-reverse", gap: 3,
         padding: "6px", overflowY: "auto", minHeight: 200,
         background: C.frameBg, borderRadius: hasBinary && config.showGuide ? 0 : 8,
-        border: `1.5px solid ${C.frameStroke}`,
-        borderTop: hasBinary && config.showGuide ? "none" : `1.5px solid ${C.frameStroke}`,
-        borderBottom: hasBinary && config.showGuide ? "none" : `1.5px solid ${C.frameStroke}`,
+        border: `1.5px solid ${isDanger ? C.red : C.frameStroke}`,
+        borderTop: hasBinary && config.showGuide ? "none" : `1.5px solid ${isDanger ? C.red : C.frameStroke}`,
+        borderBottom: hasBinary && config.showGuide ? "none" : `1.5px solid ${isDanger ? C.red : C.frameStroke}`,
         position: "relative",
+        transition: "background 0.3s",
+        ...(dangerFlash ? { background: "rgba(224,112,96,0.08)" } : {}),
       }}>
         {/* Danger line at bottom */}
         {rows.length > 0 && (
