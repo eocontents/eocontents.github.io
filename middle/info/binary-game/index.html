@@ -457,6 +457,9 @@ function LandingScreen({ onStart }) {
       >
         게임 시작
       </button>
+      <div style={{ marginTop: 24, fontSize: 12, color: C.gray }}>
+        Copyright © 2026 이오북스
+      </div>
     </div>
   );
 }
@@ -1138,7 +1141,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   };
 
   const linesLeft = config.maxRows - rows.length;
-  const isDanger = linesLeft <= 2;
+  const isDanger = linesLeft <= 1;
 
   // Visual danger pulse (no BGM change)
   const [dangerFlash, setDangerFlash] = useState(false);
@@ -1186,7 +1189,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
           {[
             { label: "점수", value: score.toLocaleString(), color: C.navy },
             { label: "Lv", value: level, color: C.mint },
-            { label: "남은줄", value: linesLeft, color: linesLeft <= 2 ? C.red : C.amber },
+            { label: "남은줄", value: linesLeft, color: linesLeft <= 1 ? C.red : C.amber },
           ].map(item => (
             <div key={item.label} style={{
               background: C.scoreboardBg, borderRadius: 10, padding: "5px 8px", textAlign: "center",
@@ -1300,16 +1303,16 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
         borderBottom: hasBinary && config.showGuide ? "none" : `1.5px solid ${isDanger ? C.red : C.frameStroke}`,
         position: "relative",
         transition: "background 0.3s",
-        ...(dangerFlash ? { background: "rgba(224,112,96,0.04)" } : {}),
+        ...(dangerFlash ? { background: "rgba(224,112,96,0.025)" } : {}),
       }}>
         {/* Danger line at bottom */}
         {rows.length > 0 && (
           <div style={{
-            borderBottom: `2px dashed ${linesLeft <= 2 ? "#ff4444" : "#ff8844"}`,
+            borderBottom: `2px dashed ${linesLeft <= 1 ? "#ff4444" : "#ff8844"}`,
             margin: "0 0 2px", padding: "0 0 4px", textAlign: "center",
-            fontSize: 10, color: linesLeft <= 2 ? "#ff4444" : "#ff8844", fontWeight: 600,
+            fontSize: 10, color: linesLeft <= 1 ? "#ff4444" : "#ff8844", fontWeight: 600,
           }}>
-            {linesLeft <= 2 ? "⚠ DANGER" : `↑ ${linesLeft} lines left`}
+            {linesLeft <= 1 ? "⚠ DANGER" : `↑ ${linesLeft} 줄 남음`}
           </div>
         )}
 
@@ -1610,10 +1613,12 @@ function App() {
     }
   }, [screen]);
 
+  const [tutorialSeenThisSession, setTutorialSeenThisSession] = useState({});
+
   const startLevel = (stageId, lv) => {
     setCurrentStage(stageId);
     setCurrentLevel(lv);
-    if (!save.stages[stageId].tutorialSeen) {
+    if (!tutorialSeenThisSession[stageId]) {
       setScreen("tutorial");
     } else {
       setScreen("gameplay");
@@ -1645,7 +1650,7 @@ function App() {
           save={save}
           charId={charId}
           onStageSelect={(id) => { setCurrentStage(id); setScreen("levelSelect"); }}
-          onHome={() => setScreen("landing")}
+          onHome={() => setScreen("characterSelect")}
         />
       )}
 
@@ -1664,9 +1669,7 @@ function App() {
           stageId={currentStage}
           charId={charId}
           onComplete={() => {
-            const ns = { ...save };
-            ns.stages[currentStage].tutorialSeen = true;
-            updateSave(ns);
+            setTutorialSeenThisSession(prev => ({ ...prev, [currentStage]: true }));
             setScreen("gameplay");
           }}
         />
