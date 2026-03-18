@@ -6,6 +6,17 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <script>
+    // Cache buster: change this version string on every update
+    var APP_VERSION = "20260319a";
+    var cachedVer = sessionStorage.getItem("appVer");
+    if (cachedVer && cachedVer !== APP_VERSION) {
+      sessionStorage.setItem("appVer", APP_VERSION);
+      location.reload(true);
+    } else {
+      sessionStorage.setItem("appVer", APP_VERSION);
+    }
+  </script>
   <title>이오프렌즈 진법 변환 게임</title>
   <meta name="description" content="2진수, 8진수, 10진수, 16진수 변환을 게임으로 연습하자!">
   <meta property="og:title" content="이오프렌즈 진법 변환 게임">
@@ -22,7 +33,7 @@
     ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
     #root { min-height: 100vh; }
   </style>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css?v=1773837538">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
