@@ -7,8 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    // Cache buster: change this version string on every update
-    var APP_VERSION = "20260319a";
+    var APP_VERSION = "20260319b";
     var cachedVer = sessionStorage.getItem("appVer");
     if (cachedVer && cachedVer !== APP_VERSION) {
       sessionStorage.setItem("appVer", APP_VERSION);
@@ -48,11 +47,11 @@
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 const CHARACTERS = [
-  { id: "eobot", name: "이오봇", color: "#87CEEB", accent: "#3C4F5E", desc: "친절한 가이드" },
-  { id: "juni", name: "주니", color: "#2C3E6B", accent: "#F5DEB3", desc: "열정 응원단장" },
-  { id: "high", name: "하이", color: "#F5A0B8", accent: "#2C3E6B", desc: "호기심 도전가" },
-  { id: "mungeo", name: "멍이오", color: "#E8B864", accent: "#A08040", desc: "다정한 힌트왕" },
-  { id: "nyangeo", name: "냥이오", color: "#8A8E94", accent: "#4A4A4A", desc: "냉철한 분석가" },
+  { id: "eobot", name: "이오봇", nameEn: "EOBOT", color: "#87CEEB", accent: "#3C4F5E", title: "친절한 가이드", desc: "궁금한 건 뭐든 찾아주는 마을 도우미 로봇. 가끔 멈추지만, 도움만큼은 확실합니다." },
+  { id: "juni", name: "주니", nameEn: "JUNI", color: "#2C3E6B", accent: "#F5DEB3", title: "끝없는 질문쟁이", desc: "하루 종일 \"왜?\"를 외치는 호기심 폭발 친구. 궁금한 만큼 똑똑해집니다." },
+  { id: "high", name: "하이", nameEn: "HIGH", color: "#F5A0B8", accent: "#2C3E6B", title: "쿨한 정리 담당", desc: "엉뚱한 상황도 깔끔하게 정리하는 해결사. 겉은 시크, 속은 따뜻한 언니." },
+  { id: "mungeo", name: "멍이오", nameEn: "MUNGeo", color: "#E8B864", accent: "#A08040", title: "일단 해보는 도전러", desc: "생각보다 행동이 빠른 에너지 만렙 강아지. 실패도 경험, 성공도 경험!" },
+  { id: "nyangeo", name: "냥이오", nameEn: "NYANGeo", color: "#8A8E94", accent: "#4A4A4A", title: "조용한 지식가", desc: "말은 적지만 핵심만 짚는 똑똑한 고양이. 알고 보면 누구보다 많은 걸 알고 있습니다." },
 ];
 
 const STAGES = [
@@ -69,45 +68,46 @@ const TOTAL_QUESTIONS = 15;
 const LEVEL_CONFIGS = {
   1: [
     { bits: 4, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "4비트 (0~15)" },
-    { bits: 6, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "6비트 (0~63)" },
-    { bits: 8, max: 255, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 90, label: "8비트 (0~255)" },
-    { bits: 8, max: 255, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "8비트 힌트없음" },
-    { bits: 8, max: 255, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "8비트 고속" },
+    { bits: 5, max: 31, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "5비트 (0~31)" },
+    { bits: 6, max: 63, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "6비트 (0~63)" },
+    { bits: 7, max: 127, interval: 5500, maxRows: 10, showGuide: true, timeLimit: 120, label: "7비트 (0~127)" },
+    { bits: 8, max: 255, interval: 5000, maxRows: 10, showGuide: true, timeLimit: 120, label: "8비트 (0~255)" },
   ],
   2: [
     { digits: 1, max: 7, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리 (0~7)" },
-    { digits: 2, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "2자리 (0~63)" },
-    { digits: 3, max: 511, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 90, label: "3자리 (0~511)" },
-    { digits: 3, max: 511, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "3자리 힌트없음" },
-    { digits: 4, max: 4095, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "4자리 (0~4095)" },
+    { digits: 2, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "2자리 (0~63)" },
+    { digits: 2, max: 63, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
+    { digits: 3, max: 511, interval: 5500, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리 (0~511)" },
+    { digits: 3, max: 511, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 힌트없음" },
   ],
   3: [
     { digits: 1, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리 (0~F)" },
-    { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "2자리 (0~FF)" },
-    { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 90, label: "3자리 (0~FFF)" },
-    { digits: 3, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "3자리 힌트없음" },
-    { digits: 4, max: 65535, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "4자리 (0~FFFF)" },
+    { digits: 1, max: 15, interval: 7000, maxRows: 8, showGuide: false, timeLimit: 120, label: "1자리 힌트없음" },
+    { digits: 2, max: 255, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "2자리 (0~FF)" },
+    { digits: 2, max: 255, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
+    { digits: 3, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 (0~FFF)" },
   ],
   4: [
     { bits: 3, max: 7, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "3비트 (0~7)" },
-    { bits: 6, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "6비트 (0~63)" },
-    { bits: 9, max: 511, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 90, label: "9비트 (0~511)" },
-    { bits: 12, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "12비트 (0~4095)" },
-    { bits: 12, max: 4095, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "12비트 고속" },
+    { bits: 6, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "6비트 (0~63)" },
+    { bits: 9, max: 511, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "9비트 (0~511)" },
+    { bits: 9, max: 511, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "9비트 힌트없음" },
+    { bits: 12, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "12비트 (0~4095)" },
   ],
   5: [
     { bits: 4, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "4비트 (0~F)" },
-    { bits: 8, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "8비트 (0~FF)" },
-    { bits: 12, max: 4095, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 90, label: "12비트 (0~FFF)" },
-    { bits: 16, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "16비트 (0~FFFF)" },
-    { bits: 16, max: 65535, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "16비트 고속" },
+    { bits: 8, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "8비트 (0~FF)" },
+    { bits: 12, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "12비트 (0~FFF)" },
+    { bits: 12, max: 4095, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "12비트 힌트없음" },
+    { bits: 16, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "16비트 (0~FFFF)" },
   ],
   6: [
     { digits: 1, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리" },
-    { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 105, label: "2자리" },
-    { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 90, label: "3자리" },
-    { digits: 4, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 75, label: "4자리" },
-    { digits: 4, max: 65535, interval: 4000, maxRows: 12, showGuide: false, timeLimit: 60, label: "4자리 고속" },
+    { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "2자리" },
+    { digits: 2, max: 255, interval: 6500, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
+    { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리" },
+    { digits: 3, max: 4095, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 힌트없음" },
+    { digits: 4, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "4자리" },
   ],
 };
 
@@ -292,10 +292,13 @@ function getInitialSave() {
     character: null,
     sfx: true,
     bgm: true,
-    stages: Object.fromEntries(STAGES.map(s => [s.id, {
-      levels: Object.fromEntries([1,2,3,4,5].map(l => [l, { cleared: false, stars: 0, high: 0 }])),
-      tutorialSeen: false,
-    }])),
+    stages: Object.fromEntries(STAGES.map(s => {
+      const lvCount = LEVEL_CONFIGS[s.id].length;
+      return [s.id, {
+        levels: Object.fromEntries(Array.from({length: lvCount}, (_, i) => [i + 1, { cleared: false, stars: 0, high: 0 }])),
+        tutorialSeen: false,
+      }];
+    })),
   };
 }
 
@@ -304,10 +307,7 @@ function saveToDisk(data) {
 }
 
 function isStageUnlocked(save, stageId) {
-  const stage = STAGES.find(s => s.id === stageId);
-  if (!stage || !stage.unlockReq) return true;
-  const req = stage.unlockReq;
-  return save.stages[req.stage]?.levels[req.level]?.cleared || false;
+  return true;
 }
 
 function getStars(accuracy) {
@@ -487,7 +487,7 @@ function CharacterSelect({ onSelect, selected }) {
   return (
     <div style={{
       minHeight: "100vh", ...skinBg(SKIN.bgStageMap, C.bg), display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", padding: 20,
+      alignItems: "center", justifyContent: "flex-start", padding: "40px 20px 20px",
     }}>
       <h2 style={{ fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 700, color: C.navy, margin: "0 0 8px" }}>
         함께할 친구를 골라주세요!
@@ -510,11 +510,12 @@ function CharacterSelect({ onSelect, selected }) {
       <div style={{
         background: C.white, borderRadius: 16, padding: 20, textAlign: "center",
         boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 24, maxWidth: 320, width: "100%",
-        border: `1px solid ${C.lightBorder}`,
+        border: `1px solid ${C.lightBorder}`, display: "flex", flexDirection: "column", alignItems: "center",
       }}>
-        <CharAvatar charId={hover} size={64} />
-        <div style={{ fontWeight: 700, fontSize: 18, color: C.charcoal, marginTop: 8 }}>{ch.name}</div>
-        <div style={{ fontSize: 13, color: C.gray }}>{ch.desc}</div>
+        <CharAvatar charId={hover} size={72} />
+        <div style={{ fontWeight: 700, fontSize: 18, color: C.charcoal, marginTop: 10 }}>{ch.name} ({ch.nameEn})</div>
+        <div style={{ fontSize: 13, color: C.btn, fontWeight: 600, marginTop: 2 }}>{ch.title}</div>
+        <div style={{ fontSize: 12, color: C.gray, marginTop: 6, lineHeight: 1.6 }}>{ch.desc}</div>
       </div>
       <button onClick={() => { soundEngine.play("click"); onSelect(hover); }} style={{
         background: C.btn, color: C.white, border: "none", borderRadius: 14,
@@ -620,7 +621,7 @@ function LevelSelect({ stageId, save, charId, onLevelSelect, onBack }) {
           ← 스테이지
         </button>
         <div style={{ fontWeight: 700, fontSize: 18, color: C.navy }}>
-          {stage.icon} STAGE {stageId} — {stage.name}
+          {stage.icon} [STAGE {stageId}] {stage.name}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400, width: "100%" }}>
@@ -681,7 +682,7 @@ const TUTORIALS = {
       {
         title: "2진수란?",
         content: "컴퓨터는 0과 1만 사용해요.\n각 자리는 오른쪽부터 1, 2, 4, 8, 16, 32, 64, 128의 값을 가집니다.",
-        example: { bits: "00001101", values: [128,64,32,16,8,4,2,1], result: "8+4+1 = 13" },
+        example: { bits: "00001101", values: [128,64,32,16,8,4,2,1], result: "8+4+0+1 = 13" },
       },
       {
         title: "10진수 → 2진수",
@@ -1574,7 +1575,7 @@ function ResultScreen({ result, stageId, level, charId, save, onSave, onRetry, o
           background: C.white, color: C.btn, border: `1.5px solid ${C.btn}`,
           borderRadius: 12, padding: "12px 24px", fontSize: 15, fontWeight: 600, cursor: "pointer",
         }}>다시 하기</button>
-        {cleared && level < 5 && (
+        {cleared && level < LEVEL_CONFIGS[stageId].length && (
           <button onClick={() => { soundEngine.play("click"); onNext(); }} style={{
             background: C.btn, color: C.white, border: "none",
             borderRadius: 12, padding: "12px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer",
