@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    var APP_VERSION = "20260319b";
+    var APP_VERSION = "20260320a";
     var cachedVer = sessionStorage.getItem("appVer");
     if (cachedVer && cachedVer !== APP_VERSION) {
       sessionStorage.setItem("appVer", APP_VERSION);
@@ -107,7 +107,6 @@ const LEVEL_CONFIGS = {
     { digits: 2, max: 255, interval: 6500, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
     { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리" },
     { digits: 3, max: 4095, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 힌트없음" },
-    { digits: 4, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "4자리" },
   ],
 };
 
@@ -269,6 +268,10 @@ const soundEngine = new SoundEngine();
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 const DIGITS = "0123456789ABCDEF";
+const SUB_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+function subBase(base) {
+  return "₍" + String(base).split("").map(d => SUB_DIGITS[parseInt(d)]).join("") + "₎";
+}
 function toBase(decimal, base) {
   if (decimal === 0) return "0";
   let r = "", n = decimal;
@@ -285,10 +288,10 @@ function padBinary(bin, bits) { return bin.padStart(bits, "0"); }
 function getInitialSave() {
   try {
     const d = JSON.parse(localStorage.getItem("binaryGame"));
-    if (d && d.version === "1.0") return d;
+    if (d && d.version === "1.1") return d;
   } catch {}
   return {
-    version: "1.0",
+    version: "1.1",
     character: null,
     sfx: true,
     bgm: true,
@@ -1034,14 +1037,14 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
     let question, answer, answerBase, inputBase, sourceDisplay;
     if (direction === "AtoB") {
       const srcStr = toBase(decimal, fromB);
-      question = `(${fromB}) ${srcStr}`;
+      question = `${srcStr}${subBase(fromB)}`;
       answer = toBase(decimal, toB).toUpperCase();
       answerBase = toB;
       inputBase = toB;
       sourceDisplay = srcStr;
     } else {
       const srcStr = toBase(decimal, toB);
-      question = `(${toB}) ${srcStr}`;
+      question = `${srcStr}${subBase(toB)}`;
       answer = toBase(decimal, fromB).toUpperCase();
       answerBase = fromB;
       inputBase = fromB;
@@ -1358,11 +1361,11 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
                     minWidth: 48, height: cellSize, borderRadius: 6,
                     background: C.white, color: C.charcoal,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                    fontSize: "clamp(14px, 3.5vw, 20px)", fontWeight: 700,
                     fontFamily: "'Fira Code', monospace", flexShrink: 0,
-                    border: `1.5px solid ${C.frameStroke}`,
+                    border: `1.5px solid ${C.frameStroke}`, padding: "0 6px",
                   }}>
-                    {row.sourceDisplay}
+                    {row.question}
                   </div>
                 </>
               )}
