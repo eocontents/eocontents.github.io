@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    var APP_VERSION = "20260320a";
+    var APP_VERSION = "20260323a";
     var cachedVer = sessionStorage.getItem("appVer");
     if (cachedVer && cachedVer !== APP_VERSION) {
       sessionStorage.setItem("appVer", APP_VERSION);
@@ -23,7 +23,10 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
     body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    @media (min-width: 768px) { html { font-size: 18px; } }
+    @media (min-width: 1200px) { html { font-size: 20px; } }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
     @keyframes slideIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
     @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
@@ -76,37 +79,27 @@ const LEVEL_CONFIGS = {
   2: [
     { digits: 1, max: 7, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리 (0~7)" },
     { digits: 2, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "2자리 (0~63)" },
-    { digits: 2, max: 63, interval: 6000, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
-    { digits: 3, max: 511, interval: 5500, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리 (0~511)" },
-    { digits: 3, max: 511, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 힌트없음" },
+    { digits: 3, max: 511, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리 (0~511)" },
   ],
   3: [
     { digits: 1, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리 (0~F)" },
-    { digits: 1, max: 15, interval: 7000, maxRows: 8, showGuide: false, timeLimit: 120, label: "1자리 힌트없음" },
-    { digits: 2, max: 255, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "2자리 (0~FF)" },
-    { digits: 2, max: 255, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
-    { digits: 3, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 (0~FFF)" },
+    { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "2자리 (0~FF)" },
+    { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리 (0~FFF)" },
   ],
   4: [
     { bits: 3, max: 7, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "3비트 (0~7)" },
     { bits: 6, max: 63, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "6비트 (0~63)" },
     { bits: 9, max: 511, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "9비트 (0~511)" },
-    { bits: 9, max: 511, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "9비트 힌트없음" },
-    { bits: 12, max: 4095, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "12비트 (0~4095)" },
   ],
   5: [
     { bits: 4, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "4비트 (0~F)" },
     { bits: 8, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "8비트 (0~FF)" },
     { bits: 12, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "12비트 (0~FFF)" },
-    { bits: 12, max: 4095, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "12비트 힌트없음" },
-    { bits: 16, max: 65535, interval: 5000, maxRows: 10, showGuide: false, timeLimit: 120, label: "16비트 (0~FFFF)" },
   ],
   6: [
     { digits: 1, max: 15, interval: 8000, maxRows: 8, showGuide: true, timeLimit: 120, label: "1자리" },
     { digits: 2, max: 255, interval: 7000, maxRows: 8, showGuide: true, timeLimit: 120, label: "2자리" },
-    { digits: 2, max: 255, interval: 6500, maxRows: 10, showGuide: false, timeLimit: 120, label: "2자리 힌트없음" },
     { digits: 3, max: 4095, interval: 6000, maxRows: 10, showGuide: true, timeLimit: 120, label: "3자리" },
-    { digits: 3, max: 4095, interval: 5500, maxRows: 10, showGuide: false, timeLimit: 120, label: "3자리 힌트없음" },
   ],
 };
 
@@ -268,9 +261,13 @@ const soundEngine = new SoundEngine();
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 const DIGITS = "0123456789ABCDEF";
-const SUB_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
-function subBase(base) {
-  return "₍" + String(base).split("").map(d => SUB_DIGITS[parseInt(d)]).join("") + "₎";
+function BaseLabel({ value, base, fontSize }) {
+  const fs = fontSize || "inherit";
+  return (
+    <span style={{ fontFamily: "'Fira Code', monospace", fontWeight: 700, fontSize: fs }}>
+      {value}<sub style={{ fontSize: "0.7em", fontWeight: 600 }}>({base})</sub>
+    </span>
+  );
 }
 function toBase(decimal, base) {
   if (decimal === 0) return "0";
@@ -316,7 +313,7 @@ function isStageUnlocked(save, stageId) {
 function getStars(accuracy) {
   if (accuracy >= 90) return 3;
   if (accuracy >= 80) return 2;
-  if (accuracy >= 70) return 1;
+  if (accuracy >= 60) return 1;
   return 0;
 }
 
@@ -873,29 +870,22 @@ function TutorialScreen({ stageId, charId, onComplete }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BIT TOGGLE INPUT (auto-submit when correct)
+// BIT TOGGLE INPUT (manual submit via check button)
 // ═══════════════════════════════════════════════════════════════
-function BitToggleRow({ bits, targetDecimal, onCorrect, onWrong }) {
+function BitToggleRow({ bits, onValueChange }) {
   const [userBits, setUserBits] = useState(new Array(bits).fill(0));
-  const submittedRef = useRef(false);
 
   const toggle = (idx) => {
-    if (submittedRef.current) return;
     const nb = [...userBits];
     nb[idx] = nb[idx] ? 0 : 1;
     setUserBits(nb);
     soundEngine.play("toggle");
     const dec = nb.reduce((s, b, i) => s + b * Math.pow(2, bits - 1 - i), 0);
-    if (dec === targetDecimal) {
-      submittedRef.current = true;
-      setTimeout(() => onCorrect(), 150);
-    }
+    const anyToggled = nb.some(b => b !== 0);
+    onValueChange(dec, anyToggled);
   };
 
-  useEffect(() => {
-    setUserBits(new Array(bits).fill(0));
-    submittedRef.current = false;
-  }, [bits, targetDecimal]);
+  useEffect(() => { setUserBits(new Array(bits).fill(0)); }, [bits]);
 
   const cellSz = bits <= 8 ? "clamp(32px, 9vw, 44px)" : "clamp(24px, 6vw, 34px)";
 
@@ -1019,6 +1009,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   const [timeLeft, setTimeLeft] = useState(config.timeLimit);
   const [sfxOn, setSfxOn] = useState(soundEngine.enabled);
   const [bgmOn, setBgmOn] = useState(soundEngine.bgmEnabled);
+  const [bitRowState, setBitRowState] = useState({});
   const generatedRef = useRef(0);
   const answeredRef = useRef(0);
   const rowIdRef = useRef(0);
@@ -1034,17 +1025,19 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
     const direction = Math.random() < 0.5 ? "AtoB" : "BtoA";
     const fromB = stage.fromBase;
     const toB = stage.toBase;
-    let question, answer, answerBase, inputBase, sourceDisplay;
+    let question, answer, answerBase, inputBase, sourceDisplay, displayBase;
     if (direction === "AtoB") {
       const srcStr = toBase(decimal, fromB);
-      question = `${srcStr}${subBase(fromB)}`;
+      question = srcStr;
+      displayBase = fromB;
       answer = toBase(decimal, toB).toUpperCase();
       answerBase = toB;
       inputBase = toB;
       sourceDisplay = srcStr;
     } else {
       const srcStr = toBase(decimal, toB);
-      question = `${srcStr}${subBase(toB)}`;
+      question = srcStr;
+      displayBase = toB;
       answer = toBase(decimal, fromB).toUpperCase();
       answerBase = fromB;
       inputBase = fromB;
@@ -1052,7 +1045,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
     }
     return {
       id: ++rowIdRef.current, decimal, direction, question, answer,
-      answerBase, inputBase, bits: config.bits || 8,
+      answerBase, inputBase, displayBase, bits: config.bits || 8,
       sourceDisplay, createdAt: Date.now(),
     };
   }, [config, stage]);
@@ -1069,7 +1062,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
     const unanswered = TOTAL_QUESTIONS - answered;
     const totalWrong = wrongRef.current + unanswered;
     const accuracy = TOTAL_QUESTIONS > 0 ? Math.round(correctRef.current / TOTAL_QUESTIONS * 100) : 0;
-    const cleared = correctRef.current >= Math.ceil(TOTAL_QUESTIONS * 0.7) && accuracy >= 70;
+    const cleared = correctRef.current >= Math.ceil(TOTAL_QUESTIONS * 0.6) && accuracy >= 60;
     setTimeout(() => {
       onResult({
         score: scoreRef.current, correct: correctRef.current, wrong: totalWrong,
@@ -1192,8 +1185,19 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
   return (
     <div style={{
       minHeight: "100vh", ...skinBg(SKIN.bgGameplay, C.bgAlt), display: "flex", flexDirection: "column",
-      padding: "12px 8px",
+      alignItems: "center",
     }}>
+    <div style={{
+      width: "100%", maxWidth: 700, display: "flex", flexDirection: "column",
+      padding: "12px 8px", flex: 1,
+    }}>
+      {/* Stage title */}
+      <div style={{
+        textAlign: "center", fontSize: "clamp(12px, 2.5vw, 15px)", fontWeight: 700,
+        color: C.navy, marginBottom: 6,
+      }}>
+        {stage.icon} [STAGE {stageId}] {stage.name}
+      </div>
       {/* Header */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -1203,7 +1207,6 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
           {[
             { label: "점수", value: score.toLocaleString(), color: C.navy },
             { label: "Lv", value: level, color: C.mint },
-            { label: "남은줄", value: linesLeft, color: linesLeft <= 1 ? C.red : C.amber },
           ].map(item => (
             <div key={item.label} style={{
               background: C.scoreboardBg, borderRadius: 10, padding: "5px 8px", textAlign: "center",
@@ -1353,20 +1356,34 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
                   <BitToggleRow
                     key={row.id}
                     bits={row.bits}
-                    targetDecimal={row.decimal}
-                    onCorrect={() => checkAnswer(row.id, row.answer)}
+                    onValueChange={(dec, anyToggled) => {
+                      setBitRowState(prev => ({ ...prev, [row.id]: { dec, anyToggled } }));
+                    }}
                   />
                   <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
                   <div style={{
                     minWidth: 48, height: cellSize, borderRadius: 6,
                     background: C.white, color: C.charcoal,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "clamp(14px, 3.5vw, 20px)", fontWeight: 700,
+                    fontSize: "clamp(14px, 3.5vw, 20px)",
                     fontFamily: "'Fira Code', monospace", flexShrink: 0,
                     border: `1.5px solid ${C.frameStroke}`, padding: "0 6px",
                   }}>
-                    {row.question}
+                    <BaseLabel value={row.question} base={row.displayBase} />
                   </div>
+                  {bitRowState[row.id]?.anyToggled && (
+                    <button onClick={() => {
+                      const dec = bitRowState[row.id]?.dec || 0;
+                      const userAns = toBase(dec, row.answerBase);
+                      checkAnswer(row.id, userAns);
+                      setBitRowState(prev => { const n = {...prev}; delete n[row.id]; return n; });
+                    }} style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: C.btn, color: C.white, border: "none",
+                      fontSize: 16, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>✓</button>
+                  )}
                 </>
               )}
 
@@ -1413,12 +1430,12 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
               {!isBitInput && !isBitDisplay && (
                 <>
                   <div style={{
-                    fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                    fontSize: "clamp(16px, 4vw, 22px)",
                     color: C.charcoal, fontFamily: "'Fira Code', monospace",
                     background: C.bit0, borderRadius: 6,
                     padding: "8px 14px", flexShrink: 0,
                   }}>
-                    {row.question}
+                    <BaseLabel value={row.question} base={row.displayBase} />
                   </div>
                   <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
                   {isActive ? (
@@ -1506,6 +1523,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
         </div>
       )}
     </div>
+    </div>
   );
 }
 
@@ -1570,7 +1588,7 @@ function ResultScreen({ result, stageId, level, charId, save, onSave, onRetry, o
       </div>
       {!cleared && (
         <p style={{ color: C.gray, fontSize: 13, marginBottom: 16 }}>
-          15문제 중 11문제 이상 정답(70%)이면 클리어!
+          15문제 중 9문제 이상 정답(60%)이면 클리어!
         </p>
       )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
@@ -1640,7 +1658,14 @@ function App() {
   };
 
   return (
-    <div style={{ fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh" }}>
+    <div style={{
+      fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif",
+      minHeight: "100vh",
+      display: "flex", justifyContent: "center",
+    }}>
+    <div style={{
+      width: "100%", maxWidth: 540, minHeight: "100vh",
+    }}>
 
       {screen === "landing" && (
         <LandingScreen onStart={() => {
@@ -1714,6 +1739,7 @@ function App() {
           onStageMap={() => setScreen("stageMap")}
         />
       )}
+    </div>
     </div>
   );
 }
