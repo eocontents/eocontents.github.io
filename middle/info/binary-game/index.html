@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    var APP_VERSION = "20260323a";
+    var APP_VERSION = "20260423a";
     var cachedVer = sessionStorage.getItem("appVer");
     if (cachedVer && cachedVer !== APP_VERSION) {
       sessionStorage.setItem("appVer", APP_VERSION);
@@ -874,18 +874,19 @@ function TutorialScreen({ stageId, charId, onComplete }) {
 // ═══════════════════════════════════════════════════════════════
 function BitToggleRow({ bits, onValueChange }) {
   const [userBits, setUserBits] = useState(new Array(bits).fill(0));
+  const hasInteracted = useRef(false);
 
   const toggle = (idx) => {
     const nb = [...userBits];
     nb[idx] = nb[idx] ? 0 : 1;
     setUserBits(nb);
     soundEngine.play("toggle");
+    hasInteracted.current = true;
     const dec = nb.reduce((s, b, i) => s + b * Math.pow(2, bits - 1 - i), 0);
-    const anyToggled = nb.some(b => b !== 0);
-    onValueChange(dec, anyToggled);
+    onValueChange(dec, true);
   };
 
-  useEffect(() => { setUserBits(new Array(bits).fill(0)); }, [bits]);
+  useEffect(() => { setUserBits(new Array(bits).fill(0)); hasInteracted.current = false; }, [bits]);
 
   const cellSz = bits <= 8 ? "clamp(32px, 9vw, 44px)" : "clamp(24px, 6vw, 34px)";
 
@@ -1184,7 +1185,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
 
   return (
     <div style={{
-      minHeight: "100vh", ...skinBg(SKIN.bgGameplay, C.bgAlt), display: "flex", flexDirection: "column",
+      minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column",
       alignItems: "center",
     }}>
     <div style={{
@@ -1235,8 +1236,9 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
             if (next) soundEngine.play("click");
           }} style={{
             background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
-            padding: "6px 10px", fontSize: 14, cursor: "pointer",
+            width: 40, height: 40, fontSize: 16, cursor: "pointer",
             color: sfxOn ? C.navy : C.red, fontWeight: 600,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
           }}>{sfxOn ? "🔊" : "🔇"}</button>
           <button onClick={() => {
             const next = !bgmOn;
@@ -1245,16 +1247,19 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
             if (next) soundEngine.playBgm("play");
           }} style={{
             background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
-            padding: "6px 10px", fontSize: 14, cursor: "pointer",
+            width: 40, height: 40, fontSize: 16, cursor: "pointer",
             color: bgmOn ? C.navy : C.red, fontWeight: 600,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
           }}>{bgmOn ? "🎵" : "🎵❌"}</button>
           <button onClick={() => { soundEngine.play("click"); setPaused(!paused); clearInterval(intervalRef.current); clearInterval(timerRef.current); soundEngine.pauseBgm(); }} style={{
             background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
-            padding: "6px 10px", fontSize: 18, cursor: "pointer",
+            width: 40, height: 40, fontSize: 16, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
           }}>{paused ? "▶" : "⏸"}</button>
           <button onClick={() => { soundEngine.play("click"); clearInterval(intervalRef.current); clearInterval(timerRef.current); onExit(); }} style={{
             background: "none", border: `1px solid ${C.lightBorder}`, borderRadius: 8,
-            padding: "6px 10px", fontSize: 11, cursor: "pointer", color: C.red,
+            width: 40, height: 40, fontSize: 11, cursor: "pointer", color: C.red,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 0, fontWeight: 600,
           }}>종료</button>
         </div>
       </div>
