@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    var APP_VERSION = "20260423b";
+    var APP_VERSION = "20260423c";
     var cachedVer = sessionStorage.getItem("appVer");
     if (cachedVer && cachedVer !== APP_VERSION) {
       sessionStorage.setItem("appVer", APP_VERSION);
@@ -58,12 +58,12 @@ const CHARACTERS = [
 ];
 
 const STAGES = [
-  { id: 1, name: "10진 ↔ 2진", fromBase: 10, toBase: 2, icon: "🔢", unlockReq: null },
-  { id: 2, name: "10진 ↔ 8진", fromBase: 10, toBase: 8, icon: "🎱", unlockReq: { stage: 1, level: 3 } },
-  { id: 3, name: "10진 ↔ 16진", fromBase: 10, toBase: 16, icon: "💎", unlockReq: { stage: 2, level: 3 } },
-  { id: 4, name: "2진 ↔ 8진", fromBase: 2, toBase: 8, icon: "🔗", unlockReq: { stage: 3, level: 3 } },
-  { id: 5, name: "2진 ↔ 16진", fromBase: 2, toBase: 16, icon: "⚡", unlockReq: { stage: 4, level: 3 } },
-  { id: 6, name: "8진 ↔ 16진", fromBase: 8, toBase: 16, icon: "🌟", unlockReq: { stage: 5, level: 3 } },
+  { id: 1, name: "10진 ↔ 2진", fromBase: 10, toBase: 2, icon: "./assets/images/stage_icon_1.png", unlockReq: null },
+  { id: 2, name: "10진 ↔ 8진", fromBase: 10, toBase: 8, icon: "./assets/images/stage_icon_2.png", unlockReq: null },
+  { id: 3, name: "10진 ↔ 16진", fromBase: 10, toBase: 16, icon: "./assets/images/stage_icon_3.png", unlockReq: null },
+  { id: 4, name: "2진 ↔ 8진", fromBase: 2, toBase: 8, icon: "./assets/images/stage_icon_4.png", unlockReq: null },
+  { id: 5, name: "2진 ↔ 16진", fromBase: 2, toBase: 16, icon: "./assets/images/stage_icon_5.png", unlockReq: null },
+  { id: 6, name: "8진 ↔ 16진", fromBase: 8, toBase: 16, icon: "./assets/images/stage_icon_6.png", unlockReq: null },
 ];
 
 const TOTAL_QUESTIONS = 15;
@@ -579,7 +579,7 @@ function StageMap({ save, charId, onStageSelect, onHome }) {
             onMouseEnter={e => unlocked && (e.currentTarget.style.transform = "scale(1.03)")}
             onMouseLeave={e => unlocked && (e.currentTarget.style.transform = "scale(1)")}
             >
-              <div style={{ fontSize: 28, marginBottom: 6 }}>{unlocked ? stage.icon : "🔒"}</div>
+              <div style={{ marginBottom: 6 }}>{unlocked ? <img src={stage.icon} alt="" style={{ width: 40, height: 40, borderRadius: 8 }} /> : "🔒"}</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: unlocked ? C.navy : "#999", marginBottom: 4 }}>
                 STAGE {stage.id}
               </div>
@@ -621,7 +621,7 @@ function LevelSelect({ stageId, save, charId, onLevelSelect, onBack }) {
           ← 스테이지
         </button>
         <div style={{ fontWeight: 700, fontSize: 18, color: C.navy }}>
-          {stage.icon} [STAGE {stageId}] {stage.name}
+          <img src={stage.icon} alt="" style={{ width: 24, height: 24, borderRadius: 4, verticalAlign: "middle" }} /> [STAGE {stageId}] {stage.name}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400, width: "100%" }}>
@@ -1197,7 +1197,7 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
         textAlign: "center", fontSize: "clamp(12px, 2.5vw, 15px)", fontWeight: 700,
         color: C.navy, marginBottom: 6,
       }}>
-        {stage.icon} [STAGE {stageId}] {stage.name}
+        <img src={stage.icon} alt="" style={{ width: 20, height: 20, borderRadius: 4, verticalAlign: "middle" }} /> [STAGE {stageId}] {stage.name}
       </div>
       {/* Header */}
       <div style={{
