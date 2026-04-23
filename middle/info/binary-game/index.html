@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    var APP_VERSION = "20260423a";
+    var APP_VERSION = "20260423b";
     var cachedVer = sessionStorage.getItem("appVer");
     if (cachedVer && cachedVer !== APP_VERSION) {
       sessionStorage.setItem("appVer", APP_VERSION);
@@ -1392,42 +1392,51 @@ function GamePlay({ stageId, level, charId, save, onResult, onExit }) {
                 </>
               )}
 
-              {/* Type B: bin→dec — fixed bits + answer cell + inline keypad */}
+              {/* Type B: bin→dec — fixed bits + answer cell */}
               {!isBitInput && isBitDisplay && (() => {
                 const binStr = padBinary(toBase(row.decimal, 2), row.bits);
+                const useInlineKeypad = row.bits <= 5;
                 return (
-                  <>
-                    <div style={{ display: "flex", gap: 2 }}>
-                      {binStr.split("").map((b, i) => (
-                        <div key={i} style={{
-                          width: cellSize, height: cellSize,
-                          borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
-                          background: b === "1" ? C.bit1 : C.bit0,
-                          color: b === "1" ? C.white : C.bit0t,
-                          fontSize: numBits <= 8 ? "clamp(14px, 3.5vw, 20px)" : "clamp(11px, 2.5vw, 15px)",
-                          fontWeight: 700, fontFamily: "'Fira Code', monospace",
-                          border: `1px solid ${b === "1" ? "#4A7EA6" : C.lightBorder}`,
-                          flexShrink: 0,
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        {binStr.split("").map((b, i) => (
+                          <div key={i} style={{
+                            width: cellSize, height: cellSize,
+                            borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+                            background: b === "1" ? C.bit1 : C.bit0,
+                            color: b === "1" ? C.white : C.bit0t,
+                            fontSize: numBits <= 8 ? "clamp(14px, 3.5vw, 20px)" : "clamp(11px, 2.5vw, 15px)",
+                            fontWeight: 700, fontFamily: "'Fira Code', monospace",
+                            border: `1px solid ${b === "1" ? "#4A7EA6" : C.lightBorder}`,
+                            flexShrink: 0,
+                          }}>
+                            {b}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
+                      {isActive && useInlineKeypad ? (
+                        <InlineKeypad base={row.inputBase} onSubmit={(val) => checkAnswer(row.id, val)} />
+                      ) : (
+                        <div onClick={(e) => { e.stopPropagation(); setActiveRow(row.id); }} style={{
+                          minWidth: 48, height: cellSize, borderRadius: 6,
+                          background: isActive ? "#fff8e8" : C.white, color: C.charcoal,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
+                          fontFamily: "'Fira Code', monospace", cursor: "pointer", flexShrink: 0,
+                          border: isActive ? `2px solid ${C.amber}` : "none",
                         }}>
-                          {b}
+                          ?
                         </div>
-                      ))}
+                      )}
                     </div>
-                    <div style={{ fontSize: 16, color: C.gray, padding: "0 4px" }}>=</div>
-                    {isActive ? (
-                      <InlineKeypad base={row.inputBase} onSubmit={(val) => checkAnswer(row.id, val)} />
-                    ) : (
-                      <div onClick={(e) => { e.stopPropagation(); setActiveRow(row.id); }} style={{
-                        minWidth: 48, height: cellSize, borderRadius: 6,
-                        background: C.white, color: C.charcoal,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 700,
-                        fontFamily: "'Fira Code', monospace", cursor: "pointer", flexShrink: 0,
-                      }}>
-                        ?
+                    {isActive && !useInlineKeypad && (
+                      <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 4 }}>
+                        <InlineKeypad base={row.inputBase} onSubmit={(val) => checkAnswer(row.id, val)} />
                       </div>
                     )}
-                  </>
+                  </div>
                 );
               })()}
 
